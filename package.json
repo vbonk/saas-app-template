@@ -1,0 +1,78 @@
+{
+  "name": "saas-app-template",
+  "version": "1.0.0",
+  "description": "SaaS application template with automated documentation generation",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "docs:generate": "node scripts/generate-docs.js",
+    "docs:validate": "node scripts/validate-docs.js",
+    "docs:readme": "node scripts/generate-docs.js --type=readme",
+    "docs:architecture": "node scripts/generate-docs.js --type=architecture",
+    "docs:api": "node scripts/generate-docs.js --type=api",
+    "docs:deployment": "node scripts/generate-docs.js --type=deployment",
+    "render-diagrams": "find docs/diagrams -name '*.puml' -exec sh -c 'plantuml -tpng \"$1\"' _ {} \\;",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@clerk/nextjs": "^4.29.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "stripe": "^14.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^15.0.0",
+    "husky": "^8.0.0",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "playwright": "^1.40.0",
+    "markdownlint-cli": "^0.37.0",
+    "conventional-changelog-cli": "^4.1.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.md": [
+      "markdownlint --fix"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && npm run docs:validate"
+    }
+  },
+  "keywords": [
+    "nextjs",
+    "saas",
+    "template",
+    "documentation",
+    "automation",
+    "railway",
+    "clerk",
+    "stripe"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
+
