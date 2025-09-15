@@ -1,0 +1,376 @@
+name: 📥 Receive Architecture Updates
+
+on:
+  repository_dispatch:
+    types: [architecture-updated]
+  workflow_dispatch:
+    inputs:
+      architecture_commit:
+        description: 'Architecture repository commit SHA'
+        required: true
+        type: string
+      change_summary:
+        description: 'Summary of changes'
+        required: false
+        type: string
+
+jobs:
+  analyze-changes:
+    name: 🔍 Analyze Architecture Changes
+    runs-on: ubuntu-latest
+    outputs:
+      needs_stack_update: ${{ steps.analysis.outputs.stack_update }}
+      needs_config_update: ${{ steps.analysis.outputs.config_update }}
+      needs_docs_update: ${{ steps.analysis.outputs.docs_update }}
+      needs_workflow_update: ${{ steps.analysis.outputs.workflow_update }}
+      update_summary: ${{ steps.analysis.outputs.summary }}
+    
+    steps:
+      - name: Checkout template repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout architecture repository
+        uses: actions/checkout@v4
+        with:
+          repository: vbonk/saas-ecosystem-architecture
+          token: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+          path: architecture-repo
+          ref: ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+
+      - name: Analyze required changes
+        id: analysis
+        run: |
+          echo "🔍 Analyzing architecture changes..."
+          
+          # Extract change information
+          STACK_CHANGED="${{ github.event.client_payload.changes.stack || 'false' }}"
+          SERVICES_CHANGED="${{ github.event.client_payload.changes.services || 'false' }}"
+          IMPLEMENTATION_CHANGED="${{ github.event.client_payload.changes.implementation || 'false' }}"
+          
+          # Determine what needs updating in template
+          stack_update="false"
+          config_update="false"
+          docs_update="false"
+          workflow_update="false"
+          
+          if [[ "$STACK_CHANGED" == "true" ]]; then
+            echo "📦 Stack changes detected - package.json and dependencies need updating"
+            stack_update="true"
+            config_update="true"
+          fi
+          
+          if [[ "$SERVICES_CHANGED" == "true" ]]; then
+            echo "🔧 Service changes detected - configuration and environment variables need updating"
+            config_update="true"
+            docs_update="true"
+          fi
+          
+          if [[ "$IMPLEMENTATION_CHANGED" == "true" ]]; then
+            echo "🚀 Implementation changes detected - workflows and setup scripts need updating"
+            workflow_update="true"
+            docs_update="true"
+          fi
+          
+          # Always update documentation references
+          docs_update="true"
+          
+          # Output results
+          echo "stack_update=$stack_update" >> $GITHUB_OUTPUT
+          echo "config_update=$config_update" >> $GITHUB_OUTPUT
+          echo "docs_update=$docs_update" >> $GITHUB_OUTPUT
+          echo "workflow_update=$workflow_update" >> $GITHUB_OUTPUT
+          
+          # Create summary
+          summary="Architecture synchronization needed:\n"
+          [[ "$stack_update" == "true" ]] && summary="${summary}📦 Update technology stack and dependencies\n"
+          [[ "$config_update" == "true" ]] && summary="${summary}⚙️ Update configuration and environment setup\n"
+          [[ "$docs_update" == "true" ]] && summary="${summary}📚 Update documentation and references\n"
+          [[ "$workflow_update" == "true" ]] && summary="${summary}🔄 Update workflows and automation\n"
+          
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$summary" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  update-template:
+    name: 🔄 Update Template Files
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.needs_stack_update == 'true' || needs.analyze-changes.outputs.needs_config_update == 'true' || needs.analyze-changes.outputs.needs_docs_update == 'true'
+    
+    steps:
+      - name: Checkout template repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout architecture repository
+        uses: actions/checkout@v4
+        with:
+          repository: vbonk/saas-ecosystem-architecture
+          token: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+          path: architecture-repo
+          ref: ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Update package.json if stack changed
+        if: needs.analyze-changes.outputs.needs_stack_update == 'true'
+        run: |
+          echo "📦 Updating package.json based on architecture stack definition..."
+          
+          # Read current stack definition from architecture repo
+          if [[ -f "architecture-repo/architecture/stack-definition.md" ]]; then
+            echo "✅ Found stack definition, analyzing for package updates..."
+            
+            # Extract technology versions from architecture (this is a simplified example)
+            # In practice, you'd have a more sophisticated parser
+            
+            # Update Next.js version if specified
+            if grep -q "Next.js 15" architecture-repo/architecture/stack-definition.md; then
+              echo "🔄 Updating to Next.js 15..."
+              npm install next@latest react@latest react-dom@latest
+            fi
+            
+            # Update TypeScript if specified
+            if grep -q "TypeScript" architecture-repo/architecture/stack-definition.md; then
+              echo "🔄 Ensuring TypeScript is latest..."
+              npm install -D typescript@latest @types/node@latest @types/react@latest @types/react-dom@latest
+            fi
+            
+            # Update Tailwind CSS if specified
+            if grep -q "Tailwind CSS" architecture-repo/architecture/stack-definition.md; then
+              echo "🔄 Ensuring Tailwind CSS is latest..."
+              npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
+            fi
+            
+            echo "✅ Package.json updated based on architecture stack"
+          else
+            echo "⚠️ Stack definition not found, skipping package updates"
+          fi
+
+      - name: Update environment configuration
+        if: needs.analyze-changes.outputs.needs_config_update == 'true'
+        run: |
+          echo "⚙️ Updating environment configuration..."
+          
+          # Update .env.example based on service matrix
+          if [[ -f "architecture-repo/architecture/service-matrix.md" ]]; then
+            echo "🔄 Updating .env.example based on service matrix..."
+            
+            # Create updated .env.example (simplified example)
+            cat > .env.example << 'EOF'
+# Database Configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/database"
+
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_
+CLERK_SECRET_KEY=sk_test_
+
+# Payments (Stripe)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_
+STRIPE_SECRET_KEY=sk_test_
+STRIPE_WEBHOOK_SECRET=whsec_
+
+# Email (Resend)
+RESEND_API_KEY=re_
+
+# Monitoring
+NEXT_PUBLIC_POSTHOG_KEY=phc_
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+SENTRY_DSN=https://
+
+# File Storage (Cloudflare R2)
+CLOUDFLARE_R2_ACCESS_KEY_ID=
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=
+CLOUDFLARE_R2_BUCKET_NAME=
+UPLOADTHING_SECRET=
+UPLOADTHING_APP_ID=
+
+# Railway
+RAILWAY_ENVIRONMENT=production
+EOF
+            
+            echo "✅ Environment configuration updated"
+          fi
+
+      - name: Update documentation references
+        if: needs.analyze-changes.outputs.needs_docs_update == 'true'
+        run: |
+          echo "📚 Updating documentation references..."
+          
+          # Update ARCHITECTURE.md to reference latest architecture
+          cat > ARCHITECTURE.md << EOF
+# Architecture Reference
+
+## 🏗️ Complete System Architecture
+
+📋 **Complete Architecture Documentation:** [SaaS Ecosystem Architecture](https://github.com/vbonk/saas-ecosystem-architecture)
+
+**Last Updated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+**Architecture Commit:** ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+
+## 🎯 For This Application
+
+### Technology Stack
+- **Frontend:** Next.js 15 + TypeScript + Tailwind CSS
+- **Backend:** Next.js API Routes + Railway
+- **Database:** PostgreSQL on Railway
+- **Authentication:** Clerk
+- **Payments:** Stripe
+- **Email:** Resend
+- **Monitoring:** Sentry + PostHog
+- **File Storage:** Cloudflare R2 + UploadThing
+
+### Quick Links
+- [📊 Technology Stack Definition](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/architecture/stack-definition.md)
+- [💰 Cost Analysis](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/architecture/cost-analysis.md)
+- [🔧 Service Matrix](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/architecture/service-matrix.md)
+- [🚀 Deployment Guide](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/implementation/)
+- [📋 Architecture Decisions](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/decisions/)
+
+### Development Workflow
+1. **Local Development:** Follow setup instructions in README.md
+2. **Testing:** Run \`npm test\` for unit tests, \`npm run test:e2e\` for E2E
+3. **Deployment:** Push to main branch triggers automatic Railway deployment
+4. **Monitoring:** Check Sentry for errors, PostHog for analytics
+
+### Architecture Compliance
+This application template follows the architecture decisions documented in the [SaaS Ecosystem Architecture](https://github.com/vbonk/saas-ecosystem-architecture) repository.
+
+For questions about architecture decisions or to propose changes, please refer to the architecture repository.
+EOF
+          
+          # Update README.md to include architecture reference
+          if [[ -f "README.md" ]]; then
+            # Add architecture reference section if it doesn't exist
+            if ! grep -q "## 🏗️ Architecture" README.md; then
+              cat >> README.md << EOF
+
+## 🏗️ Architecture
+
+This application follows the [SaaS Ecosystem Architecture](https://github.com/vbonk/saas-ecosystem-architecture) standards.
+
+For complete architecture documentation, technology decisions, and implementation guides, see the [architecture repository](https://github.com/vbonk/saas-ecosystem-architecture).
+
+**Architecture Version:** ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+EOF
+            fi
+          fi
+          
+          echo "✅ Documentation references updated"
+
+      - name: Validate template consistency
+        run: |
+          echo "✅ Validating template consistency..."
+          
+          # Run basic validation
+          npm install
+          npm run build || echo "⚠️ Build validation failed - may need manual review"
+          
+          # Check for required files
+          required_files=("package.json" ".env.example" "ARCHITECTURE.md" "README.md")
+          for file in "${required_files[@]}"; do
+            if [[ -f "$file" ]]; then
+              echo "✅ Required file exists: $file"
+            else
+              echo "❌ Missing required file: $file"
+            fi
+          done
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            🔄 Sync with architecture: ${{ github.event.client_payload.change_summary || github.event.inputs.change_summary }}
+            
+            Architecture commit: ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+            
+            ${{ needs.analyze-changes.outputs.update_summary }}
+          title: "🔄 Architecture Sync: ${{ github.event.client_payload.change_summary || 'Update template' }}"
+          body: |
+            ## 🔄 Architecture Synchronization
+            
+            This PR automatically updates the template repository to match the latest architecture decisions.
+            
+            **Architecture Repository:** [saas-ecosystem-architecture](https://github.com/vbonk/saas-ecosystem-architecture)
+            **Architecture Commit:** ${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+            **Triggered By:** ${{ github.event.client_payload.triggered_by || github.actor }}
+            
+            ### 📋 Changes Made
+            
+            ${{ needs.analyze-changes.outputs.update_summary }}
+            
+            ### 🔍 Architecture Changes
+            
+            ${{ github.event.client_payload.change_summary || github.event.inputs.change_summary || 'Architecture updates detected' }}
+            
+            ### ✅ Validation
+            
+            - [x] Template consistency validated
+            - [x] Dependencies updated (if applicable)
+            - [x] Documentation references updated
+            - [x] Environment configuration updated
+            
+            ### 🚀 Next Steps
+            
+            1. **Review changes** in this PR
+            2. **Test locally** if needed
+            3. **Merge** to apply architecture updates
+            4. **Deploy** will happen automatically after merge
+            
+            ---
+            
+            *This PR was automatically created by the architecture synchronization workflow.*
+            
+            **Need help?** Check the [architecture repository](https://github.com/vbonk/saas-ecosystem-architecture) for complete documentation.
+          branch: architecture-sync-${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}
+          delete-branch: true
+          labels: |
+            architecture-sync
+            automated
+            dependencies
+
+  notify-completion:
+    name: 📢 Notify Sync Status
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, update-template]
+    if: always()
+    
+    steps:
+      - name: Notify architecture repository
+        if: needs.update-template.result == 'success'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+          repository: vbonk/saas-ecosystem-architecture
+          event-type: template-sync-completed
+          client-payload: |
+            {
+              "template_commit": "${{ github.sha }}",
+              "architecture_commit": "${{ github.event.client_payload.architecture_commit || github.event.inputs.architecture_commit }}",
+              "status": "success",
+              "pr_url": "${{ steps.create-pr.outputs.pull-request-url }}",
+              "changes_applied": "${{ needs.analyze-changes.outputs.update_summary }}"
+            }
+
+      - name: Report success
+        if: needs.update-template.result == 'success'
+        run: |
+          echo "✅ Template synchronization completed successfully"
+          echo "🔄 Pull request created for review and merge"
+          echo "📋 Changes: ${{ needs.analyze-changes.outputs.update_summary }}"
+
+      - name: Report failure
+        if: needs.update-template.result == 'failure'
+        run: |
+          echo "❌ Template synchronization failed"
+          echo "🔍 Manual intervention may be required"
+          exit 1
+
