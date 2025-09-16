@@ -36,6 +36,8 @@ The complete architecture documentation, including technology decisions, cost an
 - **Database**: PostgreSQL + Redis (Railway hosted)
 - **Hosting**: Railway with GitHub integration
 - **CDN**: Cloudflare
+- **Workflow Automation**: n8n (Railway managed)
+- **Agent Orchestration**: Flowise (Railway managed)
 
 ### Services Integration
 - **Authentication**: Clerk
@@ -44,6 +46,7 @@ The complete architecture documentation, including technology decisions, cost an
 - **File Storage**: Cloudflare R2 + UploadThing (if enabled)
 - **Monitoring**: Sentry + PostHog
 - **AI**: OpenAI/Anthropic APIs (if enabled)
+- **Agentic/Automation**: n8n workflows and Flowise agents for orchestration and automation tasks
 
 ### Deployment Architecture
 ```
@@ -55,6 +58,7 @@ GitHub Repository → GitHub Actions (CI/CD) → Railway (Production)
             - Security scanning
             - Performance testing
             - Documentation validation
+            - Agentic workflow orchestration (n8n/Flowise health checks)
 ```
 
 ## 🔧 Local Development
@@ -71,7 +75,7 @@ npm install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your configuration
+# Edit .env.local with your configuration, including Flowise/n8n integration keys
 
 # Run development server
 npm run dev
@@ -93,7 +97,7 @@ npm run type-check   # Run TypeScript checking
 This application follows the architecture decisions documented in:
 
 - **[ADR-001: Technology Stack](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/decisions/adr-001-technology-stack.md)** - Why we chose this technology stack
-- **[ADR-002: Hosting Strategy](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/decisions/adr-002-hosting-strategy.md)** - Why we use Railway with GitHub integration
+- **[ADR-002: Hosting Strategy](https://github.com/vbonk/saas-ecosystem-architecture/blob/main/decisions/adr-002-hosting-strategy.md)** - Why we use Railway with GitHub integration (including Flowise/n8n managed services)
 
 ## 🎯 Key Benefits
 
@@ -102,12 +106,14 @@ This application follows the architecture decisions documented in:
 - **Quality Assurance**: Automated testing and validation
 - **Easy Deployment**: Push to deploy with quality gates
 - **Consistent Standards**: Shared architecture across all applications
+- **Agentic Workflows**: Automated orchestration via n8n/Flowise for advanced automation
 
 ### Production Ready
 - **Scalable Infrastructure**: Railway auto-scaling
 - **Monitoring**: Complete observability with Sentry and PostHog
 - **Security**: Automated security scanning and updates
 - **Performance**: Cloudflare CDN and optimization
+- **Agentic/Automation**: Built-in support for agent orchestration and workflow automation
 
 ### Cost Efficient
 - **Shared Services**: Reduced per-application costs
@@ -131,4 +137,3 @@ This application follows the architecture decisions documented in:
 **Architecture Version**: 1.0.0  
 **Last Updated**: September 2025  
 **Maintained By**: Architecture Team
-
