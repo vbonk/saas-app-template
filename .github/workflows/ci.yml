@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     
     steps:
       - name: Checkout code
@@ -42,6 +45,10 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     
     steps:
       - name: Checkout code
@@ -69,6 +76,9 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      actions: read
     
     steps:
       - name: Checkout code
@@ -97,6 +107,10 @@ jobs:
     needs: [test, security]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
+    permissions:
+      contents: read
+      actions: read
+      deployments: write
     
     steps:
       - name: Checkout code
@@ -113,6 +127,10 @@ jobs:
     needs: [test, security]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+      deployments: write
     
     steps:
       - name: Checkout code
