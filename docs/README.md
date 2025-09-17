@@ -1,6 +1,6 @@
-# SaaS App Template
+# saas-app-template
 
-A comprehensive Next.js template for building production-ready SaaS applications with automated documentation generation, CI/CD pipeline, and modern architecture.
+SaaS application template with automated documentation generation
 
 ## 🚀 Quick Start
 
@@ -13,29 +13,35 @@ A comprehensive Next.js template for building production-ready SaaS applications
 ```bash
 npm install
 cp .env.example .env.local
-# Configure your environment variables
 npm run dev
 ```
 
 ## 🏗️ Architecture
 
-This application is built with:
-- **Frontend:** Next.js 15 + TypeScript + Tailwind CSS
+This application is built with our modern SaaS stack:
+
+- **Frontend:** Next.js ^15.0.0
 - **Backend:** Next.js API Routes
 - **Database:** PostgreSQL + Redis
-- **Styling:** Tailwind CSS with Shadcn/ui
-- **Testing:** Jest + Playwright
+- **Styling:** Tailwind CSS
+- **Testing:** Jest, Playwright
 - **Deployment:** Railway
+
+### Key Features
+
+
+- {{this}}
+
+
+- {{this}}
+
+
+- {{this}}
+
 
 ## 📡 API Endpoints
 
-API endpoints will be automatically documented based on your route files. Run `npm run docs:api` to generate API documentation.
 
-Current template includes:
-- `/api/health` - System health check
-- `/api/auth/*` - Authentication endpoints (when implemented)
-- `/api/users/*` - User management endpoints (when implemented)
-- `/api/billing/*` - Billing and subscription endpoints (when implemented)
 
 ## 🚀 Development
 
@@ -60,6 +66,9 @@ npm install
 cp .env.example .env.local
 # Edit .env.local with your configuration
 
+# Run database migrations (if applicable)
+npm run db:migrate
+
 # Start development server
 npm run dev
 ```
@@ -74,50 +83,13 @@ npm run test         # Run unit tests
 npm run test:e2e     # Run end-to-end tests
 npm run lint         # Run linting
 npm run type-check   # Run TypeScript checks
-npm run docs:generate # Generate documentation
-npm run docs:validate # Validate documentation
 ```
-
-## 🎨 UI Components
-
-Built with modern design system:
-- **Shadcn/ui** - High-quality React components
-- **Tailwind CSS** - Utility-first styling
-- **Lucide Icons** - Beautiful icon system
-- **Responsive Design** - Mobile-first approach
-
-## 🔐 Security
-
-Security features included:
-- **Authentication:** Clerk for secure user management
-- **Authorization:** Role-based access control
-- **Data Protection:** Encrypted data transmission and storage
-- **Security Headers:** Comprehensive security headers configuration
-- **Input Validation:** Server-side validation for all inputs
-- **Rate Limiting:** API endpoint protection
-- **CORS Configuration** - Proper cross-origin resource sharing
-
-## 💳 Payments & Billing
-
-Integrated payment processing:
-- **Stripe Integration** - Complete payment flow
-- **Subscription Management** - Recurring billing
-- **Webhooks** - Real-time payment notifications
-- **Customer Portal** - Self-service billing management
-
-## 📊 Monitoring & Analytics
-
-Comprehensive monitoring setup:
-- **Error Tracking:** Sentry for error monitoring and performance tracking
-- **Product Analytics:** PostHog for user behavior and feature usage
-- **Infrastructure:** Railway metrics for application performance
-- **Uptime:** Built-in health checks and monitoring
 
 ## 🚀 Deployment
 
 This application is configured for deployment on Railway with automated CI/CD.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.
 
 ### Quick Deploy
 
@@ -132,27 +104,28 @@ railway deploy
 
 ## 📖 Documentation
 
-- [Architecture](ARCHITECTURE.md) - System architecture and design decisions
-- [API Documentation](API.md) - Complete API reference
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
-- [Security Policy](../SECURITY.md) - Security guidelines and policies
-- [Contributing Guide](../CONTRIBUTING.md) - How to contribute
+- [Architecture](docs/ARCHITECTURE.md) - System architecture and design decisions
+- [API Documentation](docs/API.md) - Complete API reference
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment instructions
 
-## 🧪 Testing
+## 📊 Monitoring & Analytics
 
-Comprehensive testing setup:
-- **Unit Tests:** Jest with React Testing Library
-- **E2E Tests:** Playwright with multi-browser support
-- **Type Checking:** TypeScript strict mode
-- **Linting:** ESLint with TypeScript support
-- **Code Formatting:** Prettier integration
+This application includes comprehensive monitoring:
 
-Run tests:
-```bash
-npm run test          # Unit tests
-npm run test:e2e      # End-to-end tests
-npm run test:watch    # Watch mode for development
-```
+- **Error Tracking:** Sentry for error monitoring and performance tracking
+- **Product Analytics:** PostHog for user behavior and feature usage
+- **Infrastructure:** Railway metrics for application performance
+- **Uptime:** Built-in health checks and monitoring
+
+## 🔐 Security
+
+Security features included:
+
+- **Authentication:** Clerk for secure user management
+- **Authorization:** Role-based access control
+- **Data Protection:** Encrypted data transmission and storage
+- **Security Headers:** Comprehensive security headers configuration
+- **Input Validation:** Server-side validation for all inputs
 
 ## 🤝 Contributing
 
@@ -174,18 +147,18 @@ npm run test:watch    # Watch mode for development
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-- **Documentation Issues:** Check the [docs](.) directory
+- **Documentation Issues:** Check the [docs](docs/) directory
 - **Bug Reports:** Use GitHub Issues
 - **Feature Requests:** Use GitHub Issues with the enhancement label
 - **Questions:** Use GitHub Discussions
-- **Security Issues:** See [SECURITY.md](../SECURITY.md)
 
 ---
 
-*Last updated: 2025-09-16 | Auto-generated documentation*
+*Last updated: 2025-09-17 | Auto-generated documentation*
 
 **Built with the SaaS Application Template - providing automated documentation, CI/CD, and production-ready architecture.**
+

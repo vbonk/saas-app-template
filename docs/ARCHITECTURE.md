@@ -2,17 +2,11 @@
 
 ## 🏗️ System Overview
 
-This document describes the architecture of the SaaS Application Template, a modern SaaS application built with scalability, maintainability, and developer experience in mind.
+This document describes the architecture of {{projectName}}, a modern SaaS application built with scalability, maintainability, and developer experience in mind.
 
 ### Technology Stack
 
-- **Frontend:** Next.js 15 + TypeScript + Tailwind CSS + Shadcn/ui
-- **Backend:** Next.js API Routes
-- **Database:** PostgreSQL + Redis
-- **Authentication:** Clerk
-- **Payments:** Stripe
-- **Hosting:** Railway
-- **Monitoring:** Sentry + PostHog
+
 
 ### Architecture Principles
 
@@ -26,13 +20,7 @@ This document describes the architecture of the SaaS Application Template, a mod
 
 ### Frontend Components
 
-The application follows a component-based architecture with:
 
-- **Pages:** Next.js App Router pages with TypeScript
-- **Components:** Reusable React components with Shadcn/ui
-- **Hooks:** Custom React hooks for state management
-- **Utils:** Utility functions and helpers
-- **Types:** TypeScript interfaces and type definitions
 
 ### Backend Services
 
@@ -208,10 +196,7 @@ src/
 ![Component Structure](diagrams/component-diagram.png)
 
 ### Data Flow Diagram
-![Data Flow](diagrams/data-flow.png)
-
-### Deployment Diagram
-![Deployment Architecture](diagrams/deployment-diagram.png)
+![Data Flow](diagrams/data-flow-diagram.png)
 
 ## 🔮 Future Considerations
 
@@ -246,6 +231,7 @@ src/
 
 ---
 
-*Last updated: 2025-09-16 | Auto-generated from code analysis*
+*Last updated: 2025-09-17 | Auto-generated from code analysis*
 
 **This architecture supports rapid development while maintaining production-grade quality, security, and scalability.**
+
