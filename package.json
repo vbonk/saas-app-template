@@ -30,7 +30,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.0",
+    "@clerk/nextjs": "^6.32.0",
     "@prisma/client": "^5.7.0",
     "@radix-ui/react-slot": "^1.0.0",
     "@stripe/stripe-js": "^2.4.0",
