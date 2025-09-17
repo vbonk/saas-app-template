@@ -1,0 +1,136 @@
+// SaaS App Template - Database Schema
+// Multi-tenant SaaS foundation with AI and background job support
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE MULTI-TENANCY FOUNDATION
+// ============================================================================
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships Membership[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships Membership[]
+  usageLog    UsageLog[]
+  posts       Post[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String          @id @default(cuid())
+  role        MembershipRole  @default(MEMBER)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  @@unique([userId, workspaceId])
+  @@map("memberships")
+}
+
+// ============================================================================
+// AI & USAGE TRACKING
+// ============================================================================
+
+model UsageLog {
+  id          String    @id @default(cuid())
+  type        UsageType
+  tokens      Int?
+  cost        Float?
+  endpoint    String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  @@map("usage_logs")
+}
+
+// ============================================================================
+// EXAMPLE APPLICATION MODELS
+// ============================================================================
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?
+  published   Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  @@map("posts")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum UsageType {
+  AI_CHAT
+  AI_GENERATION
+  AI_ANALYSIS
+  EMAIL_SENT
+  API_CALL
+  STORAGE_USED
+}
+
+// ============================================================================
+// INDEXES FOR PERFORMANCE
+// ============================================================================
+
+// Add indexes for common queries
+// @@index([workspaceId, createdAt])  // For workspace-scoped queries
+// @@index([userId, createdAt])       // For user activity queries
+// @@index([type, createdAt])         // For usage analytics

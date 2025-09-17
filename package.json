@@ -19,17 +19,33 @@
     "docs:api": "node scripts/generate-docs.js --type=api",
     "docs:deployment": "node scripts/generate-docs.js --type=deployment",
     "render-diagrams": "find docs/diagrams -name '*.puml' -exec sh -c 'plantuml -tpng \"$1\"' _ {} \\;",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "queue:dev": "node scripts/queue-worker.js",
+    "queue:dashboard": "node scripts/queue-dashboard.js",
     "prepare": "husky install"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.0",
+    "@prisma/client": "^5.7.0",
+    "@radix-ui/react-slot": "^1.0.0",
     "@stripe/stripe-js": "^2.4.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
     "next": "^15.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "resend": "^2.1.0",
     "stripe": "^14.0.0",
+    "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.0"
+    "tsx": "^4.20.5",
+    "typescript": "^5.3.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
@@ -53,7 +69,8 @@
     "lint-staged": "^15.0.0",
     "markdownlint-cli": "^0.37.0",
     "playwright": "^1.40.0",
-    "prettier": "^3.1.0"
+    "prettier": "^3.1.0",
+    "prisma": "^5.7.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
