@@ -1,0 +1,36 @@
+@startuml component-diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram - API Application
+
+Container(web_app, "Web Application", "Next.js", "Delivers static content")
+
+Container_Boundary(api, "API Application") {
+  Component(auth_controller, "Authentication Controller", "Next.js API Route", "Handles auth operations")
+  Component(user_controller, "User Controller", "Next.js API Route", "Handles user operations")
+  Component(billing_controller, "Billing Controller", "Next.js API Route", "Handles billing operations")
+  Component(auth_service, "Authentication Service", "Service", "Validates JWT tokens")
+  Component(user_service, "User Service", "Service", "Manages user data")
+  Component(billing_service, "Billing Service", "Service", "Manages subscriptions")
+  Component(email_service, "Email Service", "Service", "Sends notifications")
+}
+
+ContainerDb(database, "Database", "PostgreSQL")
+ContainerDb(cache, "Cache", "Redis")
+System_Ext(clerk, "Clerk")
+System_Ext(stripe, "Stripe")
+
+Rel(web_app, auth_controller, "API calls")
+Rel(web_app, user_controller, "API calls") 
+Rel(web_app, billing_controller, "API calls")
+
+Rel(auth_controller, auth_service, "Uses")
+Rel(user_controller, user_service, "Uses")
+Rel(billing_controller, billing_service, "Uses")
+
+Rel(auth_service, clerk, "Validates")
+Rel(billing_service, stripe, "API calls")
+Rel(user_service, database, "SQL")
+Rel(auth_service, cache, "Caches")
+
+@enduml

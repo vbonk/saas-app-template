@@ -1,0 +1,32 @@
+@startuml deployment-diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+title Deployment Diagram
+
+Deployment_Node(railway, "Railway Platform", "Cloud Platform") {
+  Deployment_Node(web_server, "Web Server", "Node.js Runtime") {
+    Container(app, "SaaS Application", "Next.js", "Main application")
+  }
+  
+  Deployment_Node(db_server, "Database Server", "PostgreSQL") {
+    ContainerDb(database, "Primary Database", "PostgreSQL", "User and application data")
+  }
+  
+  Deployment_Node(cache_server, "Cache Server", "Redis") {
+    ContainerDb(cache, "Session Cache", "Redis", "Session and temporary data")
+  }
+}
+
+Deployment_Node(external, "External Services", "Third-party") {
+  System_Ext(clerk, "Clerk", "Authentication")
+  System_Ext(stripe, "Stripe", "Payments")
+  System_Ext(sentry, "Sentry", "Monitoring")
+}
+
+Rel(app, database, "Connects to")
+Rel(app, cache, "Connects to")
+Rel(app, clerk, "API calls")
+Rel(app, stripe, "API calls")
+Rel(app, sentry, "Error reporting")
+
+@enduml

@@ -1,0 +1,22 @@
+@startuml context-diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title System Context Diagram
+
+Person(user, "User", "SaaS application user")
+System(saas_app, "SaaS Application", "Next.js application with authentication and billing")
+
+System_Ext(clerk, "Clerk", "Authentication service")
+System_Ext(stripe, "Stripe", "Payment processing")
+System_Ext(railway, "Railway", "Hosting platform")
+System_Ext(sentry, "Sentry", "Error monitoring")
+System_Ext(posthog, "PostHog", "Analytics")
+
+Rel(user, saas_app, "Uses", "HTTPS")
+Rel(saas_app, clerk, "Authenticates users", "API")
+Rel(saas_app, stripe, "Processes payments", "API") 
+Rel(saas_app, railway, "Deployed on", "Platform")
+Rel(saas_app, sentry, "Reports errors", "API")
+Rel(saas_app, posthog, "Sends analytics", "API")
+
+@enduml

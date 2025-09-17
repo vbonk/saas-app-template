@@ -1,0 +1,32 @@
+[build]
+command = "npm run build"
+watchPatterns = ["src/**", "public/**", "package.json", "next.config.js"]
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "web"
+source = "."
+
+[services.web]
+buildCommand = "npm run build"
+startCommand = "npm start"
+
+[services.web.variables]
+NODE_ENV = "production"
+NEXT_TELEMETRY_DISABLED = "1"
+
+# Database service will be auto-configured by Railway
+# Redis service will be auto-configured by Railway
+
+[environments.production]
+[environments.production.variables]
+NODE_ENV = "production"
+
+[environments.staging]
+[environments.staging.variables]
+NODE_ENV = "staging"

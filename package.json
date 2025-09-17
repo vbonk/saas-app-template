@@ -46,7 +46,10 @@
     "playwright": "^1.40.0",
     "markdownlint-cli": "^0.37.0",
     "conventional-changelog-cli": "^4.1.0",
-    "lint-staged": "^15.0.0"
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.1.0",
+    "@playwright/test": "^1.40.0",
+    "jest-environment-jsdom": "^29.0.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -56,11 +59,6 @@
     "*.md": [
       "markdownlint --fix"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged && npm run docs:validate"
-    }
   },
   "keywords": [
     "nextjs",

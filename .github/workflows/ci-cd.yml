@@ -1,0 +1,291 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Type Check
+      run: npm run type-check
+      
+    - name: Lint Code
+      run: npm run lint
+      
+    - name: Run Unit Tests
+      run: npm run test -- --coverage
+      
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/lcov.info
+        fail_ci_if_error: false
+        
+    - name: Build Application
+      run: npm run build
+      
+    - name: Validate Documentation
+      run: npm run docs:validate
+      
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Run Security Audit
+      run: npm audit --audit-level=high
+      
+    - name: Run Snyk Security Test
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+        
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+      
+    - name: Build Application
+      run: npm run build
+      
+    - name: Start Application
+      run: |
+        npm start &
+        npx wait-on http://localhost:3000
+        
+    - name: Run E2E Tests
+      run: npm run test:e2e
+      
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+        
+  performance-audit:
+    name: Performance Audit
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Build Application
+      run: npm run build
+      
+    - name: Start Application
+      run: |
+        npm start &
+        npx wait-on http://localhost:3000
+        
+    - name: Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        configPath: './lighthouse.config.js'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+        
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: [quality-gates, security-scan]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Build Application
+      run: npm run build
+      
+    - name: Deploy to Railway (Preview)
+      uses: railway/cli@main
+      with:
+        command: up --detach
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        
+    - name: Comment Preview URL
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: deployments } = await github.rest.repos.listDeployments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.sha
+          });
+          
+          if (deployments.length > 0) {
+            const deployment = deployments[0];
+            const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id
+            });
+            
+            const successStatus = statuses.find(status => status.state === 'success');
+            if (successStatus && successStatus.target_url) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🚀 **Preview Deployment Ready!**\n\n📱 **Preview URL**: ${successStatus.target_url}\n\n✅ All quality gates passed - ready for review!`
+              });
+            }
+          }
+          
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [quality-gates, security-scan, e2e-tests, performance-audit]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Build Application
+      run: npm run build
+      
+    - name: Run Database Migrations
+      run: npm run db:deploy
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        
+    - name: Deploy to Railway (Production)
+      uses: railway/cli@main
+      with:
+        command: up --detach
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        
+    - name: Run Health Check
+      run: |
+        sleep 30
+        curl -f ${{ secrets.PRODUCTION_URL }}/api/health || exit 1
+        
+    - name: Update Documentation
+      run: npm run docs:generate
+      
+    - name: Notify Deployment Success
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.repos.createDeployment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.sha,
+            environment: 'production',
+            description: 'Automated production deployment',
+            auto_merge: false
+          });
+          
+          console.log('✅ Production deployment completed successfully');
+          
+    - name: Create Release
+      if: contains(github.event.head_commit.message, 'release:')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          ## 🚀 Release v${{ github.run_number }}
+          
+          **Deployed**: ${{ github.event.head_commit.timestamp }}
+          **Commit**: ${{ github.sha }}
+          
+          ### Changes
+          ${{ github.event.head_commit.message }}
+          
+          ### Quality Gates
+          ✅ All tests passed
+          ✅ Security scan completed
+          ✅ Performance audit passed
+          ✅ Documentation updated
+        draft: false
+        prerelease: false

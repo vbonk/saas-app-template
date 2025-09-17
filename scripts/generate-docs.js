@@ -88,7 +88,7 @@ class DocumentationGenerator {
     console.log('📡 Generating API.md...');
     
     const template = this.loadTemplate('API.template.md');
-    const apiRoutes = this.extractAPIRoutes();
+    const apiRoutes = this.extractAPIEndpoints();
     
     const data = {
       endpoints: apiRoutes,

@@ -1,0 +1,25 @@
+@startuml container-diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Container Diagram
+
+Person(user, "User", "SaaS application user")
+
+System_Boundary(saas_system, "SaaS Application") {
+  Container(web_app, "Web Application", "Next.js", "Delivers static content and hosts React app")
+  Container(api, "API Application", "Next.js API Routes", "Provides API functionality")
+  ContainerDb(database, "Database", "PostgreSQL", "Stores user data, subscriptions, etc.")
+  ContainerDb(cache, "Cache", "Redis", "Stores session data and cache")
+}
+
+System_Ext(clerk, "Clerk", "Authentication service")
+System_Ext(stripe, "Stripe", "Payment processing")
+
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(web_app, api, "Makes API calls", "JSON/HTTPS")
+Rel(api, database, "Reads/Writes", "SQL")
+Rel(api, cache, "Reads/Writes", "Redis Protocol")
+Rel(api, clerk, "Validates tokens", "HTTPS")
+Rel(api, stripe, "Processes payments", "HTTPS")
+
+@enduml

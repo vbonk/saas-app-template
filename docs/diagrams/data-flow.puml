@@ -1,0 +1,35 @@
+@startuml data-flow
+title Data Flow Diagram
+
+actor User
+participant "Web App" as Web
+participant "API Routes" as API
+participant "Services" as Services
+database "PostgreSQL" as DB
+database "Redis" as Cache
+participant "Clerk" as Auth
+participant "Stripe" as Payment
+
+User -> Web: HTTP Request
+Web -> API: API Call
+API -> Auth: Validate Token
+Auth -> API: Token Valid
+API -> Services: Business Logic
+Services -> DB: Query Data
+DB -> Services: Return Data
+Services -> Cache: Cache Result
+Services -> API: Return Response
+API -> Web: JSON Response
+Web -> User: Render UI
+
+note over Services, Payment: Payment Flow
+User -> Web: Subscribe
+Web -> API: Create Subscription
+API -> Payment: Create Customer
+Payment -> API: Customer Created
+API -> DB: Save Subscription
+DB -> API: Subscription Saved
+API -> Web: Success Response
+Web -> User: Redirect to Success
+
+@enduml

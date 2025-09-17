@@ -1,0 +1,31 @@
+# Global ownership
+* @vbonk
+
+# Documentation files
+*.md @vbonk
+docs/ @vbonk
+
+# Configuration files
+package.json @vbonk
+tsconfig.json @vbonk
+next.config.js @vbonk
+tailwind.config.js @vbonk
+
+# Scripts and automation
+scripts/ @vbonk
+.github/ @vbonk
+
+# Security-sensitive files
+.env.example @vbonk
+SECURITY.md @vbonk
+
+# Core application files
+src/ @vbonk
+
+# Testing configuration
+jest.config.js @vbonk
+playwright.config.ts @vbonk
+
+# Deployment configuration
+Dockerfile @vbonk
+railway.toml @vbonk
