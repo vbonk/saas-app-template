@@ -17,23 +17,33 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: write
     
     steps:
       - name: Checkout Template Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
       
       - name: Detect Changes
         id: changes
         run: |
-          changed_files=$(git diff --name-only HEAD~1 HEAD)
+          # Use proper before/after SHAs for multi-commit pushes
+          if [ "${{ github.event_name }}" = "push" ]; then
+            before_sha="${{ github.event.before }}"
+            after_sha="${{ github.event.after }}"
+            # Handle initial push case
+            if [ "$before_sha" = "0000000000000000000000000000000000000000" ]; then
+              changed_files=$(git diff --name-only HEAD~1 HEAD)
+            else
+              changed_files=$(git diff --name-only "$before_sha" "$after_sha")
+            fi
+          else
+            # Fallback for other events
+            changed_files=$(git diff --name-only origin/main...HEAD)
+          fi
+          
           echo "Changed files:"
           echo "$changed_files"
           
@@ -63,45 +73,45 @@ jobs:
             echo "sync_needed=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Checkout Architecture Repository
-        if: steps.changes.outputs.sync_needed == 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/saas-ecosystem-architecture
-          token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
-          path: architecture-repo
-      
-      - name: Sync Files to Architecture Repository
+      - name: Setup Git and Clone Architecture Repo
         if: steps.changes.outputs.sync_needed == 'true'
         run: |
-          echo "🔄 Syncing files to architecture repository..."
+          # Clone architecture repository with authentication
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git arch-repo
+          cd arch-repo
           
           # Configure git
-          cd architecture-repo
           git config user.name "Template Sync Bot"
           git config user.email "template-sync@users.noreply.github.com"
           
           # Create sync branch
           sync_branch="template-sync-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$sync_branch"
+          echo "sync_branch=$sync_branch" >> $GITHUB_ENV
           
           cd ..
+      
+      - name: Sync Files
+        if: steps.changes.outputs.sync_needed == 'true'
+        run: |
+          echo "🔄 Syncing files to architecture repository..."
           
           # Sync security improvements
           if [ "${{ steps.changes.outputs.security_changes }}" = "true" ]; then
             echo "🔐 Syncing security improvements..."
             if [ -f "scripts/security-validation.sh" ]; then
-              cp scripts/security-validation.sh architecture-repo/scripts/
+              cp scripts/security-validation.sh arch-repo/scripts/
               echo "✅ Security validation script synced"
             fi
             if [ -f "SECURITY.md" ]; then
               # Merge security content rather than overwrite
-              if [ -f "architecture-repo/SECURITY.md" ]; then
-                echo "# Security Documentation Updates from Template" >> architecture-repo/SECURITY.md
-                echo "" >> architecture-repo/SECURITY.md
-                tail -n +1 SECURITY.md >> architecture-repo/SECURITY.md
+              if [ -f "arch-repo/SECURITY.md" ]; then
+                echo "" >> arch-repo/SECURITY.md
+                echo "## Updates from Template Repository" >> arch-repo/SECURITY.md
+                echo "" >> arch-repo/SECURITY.md
+                cat SECURITY.md >> arch-repo/SECURITY.md
               else
-                cp SECURITY.md architecture-repo/
+                cp SECURITY.md arch-repo/
               fi
               echo "✅ Security documentation synced"
             fi
@@ -110,11 +120,13 @@ jobs:
           # Sync CI/workflow improvements
           if [ "${{ steps.changes.outputs.ci_changes }}" = "true" ]; then
             echo "🚀 Syncing CI improvements..."
-            mkdir -p architecture-repo/standards/workflows/templates/
-            if [ -f ".github/workflows/ci.yml" ]; then
-              cp .github/workflows/ci.yml architecture-repo/standards/workflows/templates/ci-template.yml
-              echo "✅ CI workflow template synced"
-            fi
+            mkdir -p arch-repo/standards/workflows/templates/
+            for workflow in .github/workflows/*.yml; do
+              if [ -f "$workflow" ] && [ "$(basename "$workflow")" != "sync-architecture.yml" ]; then
+                cp "$workflow" "arch-repo/standards/workflows/templates/$(basename "$workflow")"
+                echo "✅ Synced workflow: $(basename "$workflow")"
+              fi
+            done
           fi
           
           # Sync script improvements
@@ -122,70 +134,63 @@ jobs:
             echo "🛠️ Syncing script improvements..."
             for script in scripts/*.sh; do
               if [ -f "$script" ] && [ "$(basename "$script")" != "dev-setup.sh" ]; then
-                cp "$script" "architecture-repo/scripts/"
-                echo "✅ Synced $(basename "$script")"
+                cp "$script" "arch-repo/scripts/"
+                echo "✅ Synced script: $(basename "$script")"
               fi
             done
           fi
+      
+      - name: Commit and Push Changes
+        if: steps.changes.outputs.sync_needed == 'true'
+        run: |
+          cd arch-repo
           
-          # Commit and push changes
-          cd architecture-repo
+          # Check if there are changes to commit
           git add .
-          
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to sync"
             exit 0
           fi
           
+          # Commit changes
           commit_message="🔄 Sync improvements from template repository
 
-          Template commit: ${{ github.sha }}
-          Changes: Security=${{ steps.changes.outputs.security_changes }}, CI=${{ steps.changes.outputs.ci_changes }}, Scripts=${{ steps.changes.outputs.scripts_changes }}
-          
-          Auto-synced by template→architecture workflow"
+Template commit: ${{ github.sha }}
+Changes: Security=${{ steps.changes.outputs.security_changes }}, CI=${{ steps.changes.outputs.ci_changes }}, Scripts=${{ steps.changes.outputs.scripts_changes }}
+
+Auto-synced by template→architecture workflow"
           
           git commit -m "$commit_message"
+          
+          # Push using GITHUB_TOKEN with proper authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git
           git push origin "$sync_branch"
           
-          echo "✅ Changes synced to branch: $sync_branch"
-          echo "sync_branch=$sync_branch" >> $GITHUB_OUTPUT
+          echo "✅ Changes pushed to branch: $sync_branch"
           
-      - name: Create Pull Request
-        if: steps.changes.outputs.sync_needed == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
-          script: |
-            const syncBranch = process.env.SYNC_BRANCH || `template-sync-${Date.now()}`;
-            
-            try {
-              const { data: pr } = await github.rest.pulls.create({
-                owner: context.repo.owner,
-                repo: 'saas-ecosystem-architecture',
-                title: '🔄 Sync improvements from template repository',
-                head: syncBranch,
-                base: 'main',
-                body: `## Template→Architecture Sync
-                
-                **Source commit**: \`${{ github.sha }}\`
-                **Triggered by**: ${{ github.event.head_commit.message }}
-                
-                ### Changes Synced
-                - Security changes: ${{ steps.changes.outputs.security_changes }}
-                - CI changes: ${{ steps.changes.outputs.ci_changes }}
-                - Scripts changes: ${{ steps.changes.outputs.scripts_changes }}
-                
-                ### Review Checklist
-                - [ ] Security patterns are appropriate for architecture repo
-                - [ ] CI templates work with architecture structure
-                - [ ] Scripts are compatible with architecture workflows
-                - [ ] Documentation standards are maintained
-                
-                **Auto-generated by template sync workflow**`
-              });
-              
-              console.log(\`✅ Pull request created: \${pr.html_url}\`);
-            } catch (error) {
-              console.log('⚠️ Could not create PR:', error.message);
-              console.log('Branch created but manual PR creation required');
-            }
+          # Create PR using GitHub CLI
+          echo "📝 Creating pull request..."
+          gh pr create \
+            --repo "${{ github.repository_owner }}/saas-ecosystem-architecture" \
+            --title "🔄 Sync improvements from template repository" \
+            --body "## Template→Architecture Sync
+
+**Source commit**: \`${{ github.sha }}\`
+**Triggered by**: ${{ github.event.head_commit.message }}
+
+### Changes Synced
+- Security changes: ${{ steps.changes.outputs.security_changes }}
+- CI changes: ${{ steps.changes.outputs.ci_changes }}
+- Scripts changes: ${{ steps.changes.outputs.scripts_changes }}
+
+### Review Checklist
+- [ ] Security patterns are appropriate for architecture repo
+- [ ] CI templates work with architecture structure  
+- [ ] Scripts are compatible with architecture workflows
+- [ ] Documentation standards are maintained
+
+**Auto-generated by template sync workflow**" \
+            --head "$sync_branch" \
+            --base "main"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

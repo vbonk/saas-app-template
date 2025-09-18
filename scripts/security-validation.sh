@@ -7,6 +7,7 @@ set -e
 
 echo "🔐 SaaS Ecosystem Security Validation"
 echo "======================================"
+echo "🎯 Comprehensive security scanning with enhanced validation"
 
 # Colors for output
 RED='\033[0;31m'
