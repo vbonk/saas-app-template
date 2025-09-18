@@ -63,46 +63,129 @@ jobs:
             echo "sync_needed=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Create Issue for Architecture Sync
+      - name: Checkout Architecture Repository
+        if: steps.changes.outputs.sync_needed == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/saas-ecosystem-architecture
+          token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
+          path: architecture-repo
+      
+      - name: Sync Files to Architecture Repository
+        if: steps.changes.outputs.sync_needed == 'true'
+        run: |
+          echo "🔄 Syncing files to architecture repository..."
+          
+          # Configure git
+          cd architecture-repo
+          git config user.name "Template Sync Bot"
+          git config user.email "template-sync@users.noreply.github.com"
+          
+          # Create sync branch
+          sync_branch="template-sync-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$sync_branch"
+          
+          cd ..
+          
+          # Sync security improvements
+          if [ "${{ steps.changes.outputs.security_changes }}" = "true" ]; then
+            echo "🔐 Syncing security improvements..."
+            if [ -f "scripts/security-validation.sh" ]; then
+              cp scripts/security-validation.sh architecture-repo/scripts/
+              echo "✅ Security validation script synced"
+            fi
+            if [ -f "SECURITY.md" ]; then
+              # Merge security content rather than overwrite
+              if [ -f "architecture-repo/SECURITY.md" ]; then
+                echo "# Security Documentation Updates from Template" >> architecture-repo/SECURITY.md
+                echo "" >> architecture-repo/SECURITY.md
+                tail -n +1 SECURITY.md >> architecture-repo/SECURITY.md
+              else
+                cp SECURITY.md architecture-repo/
+              fi
+              echo "✅ Security documentation synced"
+            fi
+          fi
+          
+          # Sync CI/workflow improvements
+          if [ "${{ steps.changes.outputs.ci_changes }}" = "true" ]; then
+            echo "🚀 Syncing CI improvements..."
+            mkdir -p architecture-repo/standards/workflows/templates/
+            if [ -f ".github/workflows/ci.yml" ]; then
+              cp .github/workflows/ci.yml architecture-repo/standards/workflows/templates/ci-template.yml
+              echo "✅ CI workflow template synced"
+            fi
+          fi
+          
+          # Sync script improvements
+          if [ "${{ steps.changes.outputs.scripts_changes }}" = "true" ]; then
+            echo "🛠️ Syncing script improvements..."
+            for script in scripts/*.sh; do
+              if [ -f "$script" ] && [ "$(basename "$script")" != "dev-setup.sh" ]; then
+                cp "$script" "architecture-repo/scripts/"
+                echo "✅ Synced $(basename "$script")"
+              fi
+            done
+          fi
+          
+          # Commit and push changes
+          cd architecture-repo
+          git add .
+          
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to sync"
+            exit 0
+          fi
+          
+          commit_message="🔄 Sync improvements from template repository
+
+          Template commit: ${{ github.sha }}
+          Changes: Security=${{ steps.changes.outputs.security_changes }}, CI=${{ steps.changes.outputs.ci_changes }}, Scripts=${{ steps.changes.outputs.scripts_changes }}
+          
+          Auto-synced by template→architecture workflow"
+          
+          git commit -m "$commit_message"
+          git push origin "$sync_branch"
+          
+          echo "✅ Changes synced to branch: $sync_branch"
+          echo "sync_branch=$sync_branch" >> $GITHUB_OUTPUT
+          
+      - name: Create Pull Request
         if: steps.changes.outputs.sync_needed == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
           script: |
-            const owner = context.repo.owner;
-            const architectureRepo = 'saas-ecosystem-architecture';
-            
-            const issueBody = `## 🔄 Template Repository Sync Required
-            
-            **Source Commit**: \`${{ github.sha }}\`
-            **Triggered by**: ${{ github.event.head_commit.message }}
-            
-            ### Changes Detected
-            - Security changes: ${{ steps.changes.outputs.security_changes }}
-            - CI changes: ${{ steps.changes.outputs.ci_changes }}
-            - Scripts changes: ${{ steps.changes.outputs.scripts_changes }}
-            
-            ### Files to Sync
-            ${process.env.CHANGED_FILES || 'See commit for details'}
-            
-            ### Required Actions
-            1. Review template changes in [commit ${{ github.sha }}](https://github.com/${owner}/saas-app-template/commit/${{ github.sha }})
-            2. Apply relevant improvements to architecture repository
-            3. Update standards and documentation as needed
-            4. Close this issue when sync is complete
-            
-            **Auto-generated by template→architecture sync workflow**`;
+            const syncBranch = process.env.SYNC_BRANCH || `template-sync-${Date.now()}`;
             
             try {
-              await github.rest.issues.create({
-                owner: owner,
-                repo: architectureRepo,
-                title: `[SYNC] Template improvements need architecture update`,
-                body: issueBody,
-                labels: ['sync-required', 'template-changes']
+              const { data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: 'saas-ecosystem-architecture',
+                title: '🔄 Sync improvements from template repository',
+                head: syncBranch,
+                base: 'main',
+                body: `## Template→Architecture Sync
+                
+                **Source commit**: \`${{ github.sha }}\`
+                **Triggered by**: ${{ github.event.head_commit.message }}
+                
+                ### Changes Synced
+                - Security changes: ${{ steps.changes.outputs.security_changes }}
+                - CI changes: ${{ steps.changes.outputs.ci_changes }}
+                - Scripts changes: ${{ steps.changes.outputs.scripts_changes }}
+                
+                ### Review Checklist
+                - [ ] Security patterns are appropriate for architecture repo
+                - [ ] CI templates work with architecture structure
+                - [ ] Scripts are compatible with architecture workflows
+                - [ ] Documentation standards are maintained
+                
+                **Auto-generated by template sync workflow**`
               });
-              console.log('✅ Sync issue created in architecture repository');
+              
+              console.log(\`✅ Pull request created: \${pr.html_url}\`);
             } catch (error) {
-              console.log('⚠️ Could not create issue in architecture repo:', error.message);
-              console.log('Manual sync required for this change');
+              console.log('⚠️ Could not create PR:', error.message);
+              console.log('Branch created but manual PR creation required');
             }
