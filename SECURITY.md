@@ -1,4 +1,4 @@
-# Security Policy
+This document outlines security standards and procedures for SaaS applications built from this template.
 
 ## Supported Versions
 
