@@ -104,36 +104,45 @@ jobs:
               echo "✅ Security validation script synced"
             fi
             if [ -f "SECURITY.md" ]; then
-              # Idempotent security content sync with dedicated section
+              # Truly idempotent security content sync with sentinel markers
               if [ -f "arch-repo/SECURITY.md" ]; then
-                echo "🔄 Updating security documentation with idempotent merge..."
+                echo "🔄 Updating security documentation with deterministic merge..."
                 
                 # Create backup
                 cp arch-repo/SECURITY.md arch-repo/SECURITY.md.backup
                 
-                # Remove any existing template section to prevent duplication
-                sed '/^## Template Repository Security Standards/,/^## /{ /^## Template Repository Security Standards/d; /^## /!d; }' arch-repo/SECURITY.md > arch-repo/SECURITY.md.tmp
+                # Use perl to remove everything between sentinel markers (including nested headings)
+                perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
                 
-                # If the file ends with template section, remove it
-                sed '/^## Template Repository Security Standards/,$d' arch-repo/SECURITY.md.tmp > arch-repo/SECURITY.md.clean
-                
-                # Add template section at the end
+                # Add template section with sentinel markers at the end
                 echo "" >> arch-repo/SECURITY.md.clean
+                echo "<!-- TEMPLATE_SECURITY_START -->" >> arch-repo/SECURITY.md.clean
                 echo "## Template Repository Security Standards" >> arch-repo/SECURITY.md.clean
                 echo "" >> arch-repo/SECURITY.md.clean
                 echo "*Last updated from template: $(date '+%Y-%m-%d %H:%M:%S UTC')*" >> arch-repo/SECURITY.md.clean
                 echo "" >> arch-repo/SECURITY.md.clean
                 cat SECURITY.md >> arch-repo/SECURITY.md.clean
+                echo "" >> arch-repo/SECURITY.md.clean
+                echo "<!-- TEMPLATE_SECURITY_END -->" >> arch-repo/SECURITY.md.clean
                 
                 # Replace the original file
                 mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
-                rm -f arch-repo/SECURITY.md.tmp arch-repo/SECURITY.md.backup
+                rm -f arch-repo/SECURITY.md.backup
                 
-                echo "✅ Security documentation updated idempotently"
+                echo "✅ Security documentation updated with deterministic removal"
               else
                 echo "📄 Creating new SECURITY.md from template..."
-                cp SECURITY.md arch-repo/
-                echo "✅ Security documentation created"
+                {
+                  echo "<!-- TEMPLATE_SECURITY_START -->"
+                  echo "## Template Repository Security Standards"
+                  echo ""
+                  echo "*Last updated from template: $(date '+%Y-%m-%d %H:%M:%S UTC')*"
+                  echo ""
+                  cat SECURITY.md
+                  echo ""
+                  echo "<!-- TEMPLATE_SECURITY_END -->"
+                } > arch-repo/SECURITY.md
+                echo "✅ Security documentation created with sentinel markers"
               fi
             fi
           fi
