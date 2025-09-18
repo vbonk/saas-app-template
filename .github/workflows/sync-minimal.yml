@@ -1,0 +1,37 @@
+name: Minimal Sync Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  minimal-sync:
+    name: Minimal Sync Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
+      
+      - name: Clone Architecture Repo
+        run: |
+          echo "Testing clone..."
+          git clone https://x-access-token:${{ secrets.ARCHITECTURE_SYNC_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git arch-repo
+          echo "✅ Clone successful"
+          ls -la arch-repo/
+      
+      - name: Test Simple Commands
+        run: |
+          echo "Testing basic operations..."
+          cd arch-repo
+          git config user.name "Test Bot"
+          git config user.email "test@example.com"
+          echo "# Test file" > test.md
+          git add test.md
+          git commit -m "Test commit"
+          echo "✅ All operations successful"
