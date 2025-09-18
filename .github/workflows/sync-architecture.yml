@@ -117,8 +117,16 @@ jobs:
                   # Use perl to remove everything between sentinel markers (including nested headings)
                   perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
                 else
-                  echo "📍 No sentinel markers found - this is first sync, copying current content..."
-                  cp arch-repo/SECURITY.md arch-repo/SECURITY.md.clean
+                  echo "📍 No sentinel markers found - preserving existing content..."
+                  # Check if file might already have template content without sentinels
+                  if grep -q "## Template Repository Security Standards" arch-repo/SECURITY.md; then
+                    echo "⚠️ Found template content without sentinels - removing it..."
+                    # Remove everything from "## Template Repository Security Standards" to end of file
+                    sed '/^## Template Repository Security Standards/,$d' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
+                  else
+                    echo "✅ No existing template content - preserving entire file..."
+                    cp arch-repo/SECURITY.md arch-repo/SECURITY.md.clean
+                  fi
                 fi
                 
                 # Add template section with sentinel markers at the end
