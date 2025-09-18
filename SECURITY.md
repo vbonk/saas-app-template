@@ -1,4 +1,4 @@
-This document outlines security standards and procedures for SaaS applications built from this template.
+This document outlines comprehensive security standards and procedures for SaaS applications built from this template.
 
 ## Supported Versions
 
