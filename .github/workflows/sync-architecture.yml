@@ -42,10 +42,71 @@ jobs:
               perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
               mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
             elif grep -q "## Template Repository Security Standards" arch-repo/SECURITY.md; then
-              echo "Found legacy template content without sentinels - preserving architecture content..."
-              # Only remove the specific template section, not everything after it
-              sed '/^## Template Repository Security Standards$/,/^---$/d' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
-              mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
+              echo "Found legacy template content without sentinels - using safe content-based removal..."
+              # Create a backup for safety
+              cp arch-repo/SECURITY.md arch-repo/SECURITY.md.backup
+              
+              # Use a safer approach: check if we can identify the exact template content
+              # by comparing with what we're about to add
+              if grep -q "## Supported Versions" arch-repo/SECURITY.md && grep -q "Reporting a Vulnerability" arch-repo/SECURITY.md; then
+                echo "Found template content signatures - removing known template sections..."
+                
+                # Remove only the specific content we know came from the template
+                # This is much safer than relying on document structure
+                python3 -c "
+import re
+import sys
+
+# Read the current file
+with open('arch-repo/SECURITY.md', 'r') as f:
+    content = f.read()
+
+# Define the exact start pattern we're looking for
+start_pattern = r'^## Template Repository Security Standards$'
+# Look for template-specific content patterns to find the end
+template_patterns = [
+    r'## Supported Versions',
+    r'## Reporting a Vulnerability', 
+    r'This security policy applies to the template itself'
+]
+
+# Find the start
+start_match = re.search(start_pattern, content, re.MULTILINE)
+if start_match:
+    start_pos = start_match.start()
+    
+    # Find the end by looking for the last template-specific pattern
+    end_pos = len(content)  # Default to end of file
+    for pattern in reversed(template_patterns):
+        matches = list(re.finditer(pattern, content, re.MULTILINE))
+        if matches:
+            # Find the end of the last match for this pattern
+            last_match = matches[-1]
+            # Look for the next line after this section
+            next_line = content.find('\n', last_match.end())
+            if next_line != -1:
+                end_pos = next_line + 1
+            break
+    
+    # Remove the template section
+    new_content = content[:start_pos] + content[end_pos:]
+    
+    # Write the cleaned content
+    with open('arch-repo/SECURITY.md.clean', 'w') as f:
+        f.write(new_content)
+    
+    print(f'Removed template content from position {start_pos} to {end_pos}')
+else:
+    print('Could not find template section start pattern')
+    # Copy original file if we can\'t find the pattern
+    with open('arch-repo/SECURITY.md.clean', 'w') as f:
+        f.write(content)
+"
+                mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
+                echo "✅ Legacy template content safely removed using content signatures"
+              else
+                echo "⚠️ Template content signatures not found - skipping legacy cleanup to preserve architecture content"
+              fi
             else
               echo "No existing template content found - will append new content"
             fi
@@ -86,5 +147,30 @@ jobs:
             --body "Automated sync of SECURITY.md from template repository" \
             --head "$sync_branch" \
             --base "main"
+        env:
+          GH_TOKEN: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }
+      
+      - name: Cleanup Old Sync Branches
+        if: always()
+        run: |
+          echo "🧹 Cleaning up old sync branches..."
+          # Clean up branches older than 7 days to keep repo tidy
+          gh api repos/${{ github.repository_owner }}/saas-ecosystem-architecture/branches \
+            --jq '.[] | select(.name | startswith("template-sync-")) | .name' | \
+          while IFS= read -r branch_name; do
+            if [ -n "$branch_name" ]; then
+              # Extract date from branch name (format: template-sync-YYYYMMDD-HHMMSS)
+              branch_date=$(echo "$branch_name" | sed 's/template-sync-\([0-9]\{8\}\)-.*/\1/')
+              if [ -n "$branch_date" ] && [ ${#branch_date} -eq 8 ]; then
+                # Check if branch is older than 7 days
+                current_date=$(date +%Y%m%d)
+                days_old=$(( ($(date -d "$current_date" +%s) - $(date -d "$branch_date" +%s)) / 86400 ))
+                if [ $days_old -gt 7 ]; then
+                  echo "🗑️ Deleting old branch: $branch_name (${days_old} days old)"
+                  gh api -X DELETE repos/${{ github.repository_owner }}/saas-ecosystem-architecture/git/refs/heads/$branch_name || true
+                fi
+              fi
+            fi
+          done
         env:
           GH_TOKEN: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
