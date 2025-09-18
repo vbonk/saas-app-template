@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
       
       - name: Detect Changes
         id: changes
@@ -76,8 +76,8 @@ jobs:
       - name: Setup Git and Clone Architecture Repo
         if: steps.changes.outputs.sync_needed == 'true'
         run: |
-          # Clone architecture repository with authentication
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git arch-repo
+          # Clone architecture repository with cross-repo PAT
+          git clone https://x-access-token:${{ secrets.ARCHITECTURE_SYNC_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git arch-repo
           cd arch-repo
           
           # Configure git
@@ -140,6 +140,16 @@ jobs:
             done
           fi
       
+      - name: Setup GitHub CLI
+        if: steps.changes.outputs.sync_needed == 'true'
+        run: |
+          echo "🛠️ Installing GitHub CLI..."
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh
+          echo "✅ GitHub CLI installed successfully"
+      
       - name: Commit and Push Changes
         if: steps.changes.outputs.sync_needed == 'true'
         run: |
@@ -162,8 +172,8 @@ Auto-synced by template→architecture workflow"
           
           git commit -m "$commit_message"
           
-          # Push using GITHUB_TOKEN with proper authentication
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git
+          # Push using cross-repo PAT with proper authentication
+          git remote set-url origin https://x-access-token:${{ secrets.ARCHITECTURE_SYNC_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git
           git push origin "$sync_branch"
           
           echo "✅ Changes pushed to branch: $sync_branch"
@@ -193,4 +203,4 @@ Auto-synced by template→architecture workflow"
             --head "$sync_branch" \
             --base "main"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
