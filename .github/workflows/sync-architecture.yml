@@ -111,8 +111,15 @@ jobs:
                 # Create backup
                 cp arch-repo/SECURITY.md arch-repo/SECURITY.md.backup
                 
-                # Use perl to remove everything between sentinel markers (including nested headings)
-                perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
+                # Check if file already has sentinel markers
+                if grep -q "<!-- TEMPLATE_SECURITY_START -->" arch-repo/SECURITY.md; then
+                  echo "📍 Found existing sentinel markers - removing template section..."
+                  # Use perl to remove everything between sentinel markers (including nested headings)
+                  perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
+                else
+                  echo "📍 No sentinel markers found - this is first sync, copying current content..."
+                  cp arch-repo/SECURITY.md arch-repo/SECURITY.md.clean
+                fi
                 
                 # Add template section with sentinel markers at the end
                 echo "" >> arch-repo/SECURITY.md.clean
