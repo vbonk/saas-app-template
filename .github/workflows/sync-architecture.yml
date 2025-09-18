@@ -38,9 +38,16 @@ jobs:
           if [ -f "arch-repo/SECURITY.md" ]; then
             echo "Found existing SECURITY.md"
             if grep -q "<!-- TEMPLATE_SECURITY_START -->" arch-repo/SECURITY.md; then
-              echo "Removing existing template section..."
+              echo "Removing existing template section with sentinels..."
               perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
               mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
+            elif grep -q "## Template Repository Security Standards" arch-repo/SECURITY.md; then
+              echo "Found legacy template content without sentinels - preserving architecture content..."
+              # Only remove the specific template section, not everything after it
+              sed '/^## Template Repository Security Standards$/,/^---$/d' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
+              mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
+            else
+              echo "No existing template content found - will append new content"
             fi
           fi
           

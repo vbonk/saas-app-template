@@ -134,8 +134,9 @@ With `ARCHITECTURE_SYNC_TOKEN` configured, successful push resulted in:
 **Critical Workflow Fixes Applied:**
 
 1. **auto-documentation-update.yml**: ✅ FIXED
-   - Added proper `force_update` flag respect
-   - Manual edits preserved unless force_update=true
+   - Fixed default `force_update` from 'true' to 'false'
+   - Manual edits preserved on scheduled runs and manual dispatch (default)
+   - Full regeneration only when force_update=true is explicitly set
    - Timestamp-only updates for routine maintenance
 
 2. **timestamp-update.yml**: ✅ FIXED  
@@ -155,6 +156,8 @@ With `ARCHITECTURE_SYNC_TOKEN` configured, successful push resulted in:
    - PR #2 successfully merged in architecture repository
    - Sentinel markers properly implemented: lines 312-460 in SECURITY.md
    - Template→Architecture direction confirmed as active flow
+   - Legacy cleanup logic added to preserve architecture content
+   - Lingering sync branches automatically cleaned up
 
 ### 🎯 **PRODUCTION STATUS: FULLY OPERATIONAL**
 
