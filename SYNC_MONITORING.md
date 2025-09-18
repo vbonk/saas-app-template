@@ -43,6 +43,8 @@ Monitor the production behavior of the template→architecture sync workflow to 
 - [ ] Review PR diff in architecture repository
 - [ ] Confirm exactly ONE "## Template Repository Security Standards" section
 - [ ] Verify sentinel markers properly placed
+- [ ] **CRITICAL**: Check for duplicate `# Security Policy` headings
+- [ ] **CRITICAL**: Verify document structure makes sense with embedded template
 - [ ] Check no content duplication occurred
 - [ ] Ensure architecture-specific content preserved
 
@@ -65,17 +67,39 @@ Monitor the production behavior of the template→architecture sync workflow to 
 
 1. **First Production Run**: The architecture repo SECURITY.md currently lacks sentinel markers, so first sync will test the "no sentinels but has template content" logic
 
-2. **Manual Merge Decision**: Keep sync PRs as manual merge until first successful run validates the logic
+2. **CRITICAL: Content Structure Issue**: The template SECURITY.md includes its own `# Security Policy` heading which will create duplicate headings:
+   ```markdown
+   # Security Policy  (from architecture repo)
+   
+   <!-- TEMPLATE_SECURITY_START -->
+   ## Template Repository Security Standards
+   
+   # Security Policy  (DUPLICATE from template!)
+   ## Supported Versions
+   ...
+   <!-- TEMPLATE_SECURITY_END -->
+   ```
 
-3. **Edge Cases**: Monitor for any unexpected content patterns that might confuse the detection logic
+3. **Manual Merge Decision**: Keep sync PRs as manual merge until first successful run validates the logic
+
+4. **Edge Cases**: Monitor for any unexpected content patterns that might confuse the detection logic
 
 ## 📋 Action Items
 
 ### **Before Enabling Automatic Merge**
 1. Complete at least one successful sync with manual review
 2. Verify sentinel logic works in production
-3. Confirm no content duplication
-4. Document any adjustments needed
+3. **CRITICAL**: Address content structure issue if confirmed
+4. Confirm no content duplication
+5. Document any adjustments needed
+
+### **Potential Fix for Content Structure Issue**
+If duplicate headings are confirmed, update sync workflow to:
+```bash
+# Skip the first line (# Security Policy) when copying template
+tail -n +3 SECURITY.md >> arch-repo/SECURITY.md.clean
+```
+Or restructure template SECURITY.md to not include the main heading.
 
 ### **Monitoring Commands**
 ```bash
