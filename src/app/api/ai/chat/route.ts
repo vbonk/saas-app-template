@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { generateSimpleAIResponse } from '@/lib/ai-simple';
 import { trackAnalytics } from '@/lib/queue-simple';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ const chatRequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
