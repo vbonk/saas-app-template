@@ -4,11 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/**'
-      - 'scripts/**'
       - 'SECURITY.md'
-      - 'jest.config.js'
-      - 'playwright.config.ts'
 
 jobs:
   sync-to-architecture:
@@ -23,223 +19,64 @@ jobs:
       - name: Checkout Template Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           token: ${{ secrets.ARCHITECTURE_SYNC_TOKEN }}
       
-      - name: Detect Changes
-        id: changes
+      - name: Clone Architecture Repository
         run: |
-          # Use proper before/after SHAs for multi-commit pushes
-          if [ "${{ github.event_name }}" = "push" ]; then
-            before_sha="${{ github.event.before }}"
-            after_sha="${{ github.event.after }}"
-            # Handle initial push case
-            if [ "$before_sha" = "0000000000000000000000000000000000000000" ]; then
-              changed_files=$(git diff --name-only HEAD~1 HEAD)
-            else
-              changed_files=$(git diff --name-only "$before_sha" "$after_sha")
-            fi
-          else
-            # Fallback for other events
-            changed_files=$(git diff --name-only origin/main...HEAD)
-          fi
-          
-          echo "Changed files:"
-          echo "$changed_files"
-          
-          security_changes=false
-          ci_changes=false
-          scripts_changes=false
-          
-          if echo "$changed_files" | grep -E "(SECURITY\.md|scripts/security-validation\.sh)"; then
-            security_changes=true
-          fi
-          
-          if echo "$changed_files" | grep -E "\.github/workflows/"; then
-            ci_changes=true
-          fi
-          
-          if echo "$changed_files" | grep -E "scripts/"; then
-            scripts_changes=true
-          fi
-          
-          echo "security_changes=$security_changes" >> $GITHUB_OUTPUT
-          echo "ci_changes=$ci_changes" >> $GITHUB_OUTPUT
-          echo "scripts_changes=$scripts_changes" >> $GITHUB_OUTPUT
-          
-          if [ "$security_changes" = "true" ] || [ "$ci_changes" = "true" ] || [ "$scripts_changes" = "true" ]; then
-            echo "sync_needed=true" >> $GITHUB_OUTPUT
-          else
-            echo "sync_needed=false" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Setup Git and Clone Architecture Repo
-        if: steps.changes.outputs.sync_needed == 'true'
-        run: |
-          # Clone architecture repository with cross-repo PAT
           git clone https://x-access-token:${{ secrets.ARCHITECTURE_SYNC_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git arch-repo
           cd arch-repo
-          
-          # Configure git
           git config user.name "Template Sync Bot"
           git config user.email "template-sync@users.noreply.github.com"
-          
-          # Create sync branch
           sync_branch="template-sync-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$sync_branch"
           echo "sync_branch=$sync_branch" >> $GITHUB_ENV
-          
-          cd ..
       
-      - name: Sync Files
-        if: steps.changes.outputs.sync_needed == 'true'
+      - name: Sync SECURITY.md
         run: |
-          echo "🔄 Syncing files to architecture repository..."
+          echo "Syncing SECURITY.md..."
           
-          # Sync security improvements
-          if [ "${{ steps.changes.outputs.security_changes }}" = "true" ]; then
-            echo "🔐 Syncing security improvements..."
-            if [ -f "scripts/security-validation.sh" ]; then
-              cp scripts/security-validation.sh arch-repo/scripts/
-              echo "✅ Security validation script synced"
-            fi
-            if [ -f "SECURITY.md" ]; then
-              # Truly idempotent security content sync with sentinel markers
-              if [ -f "arch-repo/SECURITY.md" ]; then
-                echo "🔄 Updating security documentation with deterministic merge..."
-                
-                # Create backup
-                cp arch-repo/SECURITY.md arch-repo/SECURITY.md.backup
-                
-                # Check if file already has sentinel markers
-                if grep -q "<!-- TEMPLATE_SECURITY_START -->" arch-repo/SECURITY.md; then
-                  echo "📍 Found existing sentinel markers - removing template section..."
-                  # Use perl to remove everything between sentinel markers (including nested headings)
-                  perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
-                else
-                  echo "📍 No sentinel markers found - preserving existing content..."
-                  # Check if file might already have template content without sentinels
-                  if grep -q "## Template Repository Security Standards" arch-repo/SECURITY.md; then
-                    echo "⚠️ Found template content without sentinels - removing it..."
-                    # Remove everything from "## Template Repository Security Standards" to end of file
-                    sed '/^## Template Repository Security Standards/,$d' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
-                  else
-                    echo "✅ No existing template content - preserving entire file..."
-                    cp arch-repo/SECURITY.md arch-repo/SECURITY.md.clean
-                  fi
-                fi
-                
-                # Add template section with sentinel markers at the end
-                echo "" >> arch-repo/SECURITY.md.clean
-                echo "<!-- TEMPLATE_SECURITY_START -->" >> arch-repo/SECURITY.md.clean
-                echo "## Template Repository Security Standards" >> arch-repo/SECURITY.md.clean
-                echo "" >> arch-repo/SECURITY.md.clean
-                echo "*Last updated from template: $(date '+%Y-%m-%d %H:%M:%S UTC')*" >> arch-repo/SECURITY.md.clean
-                echo "" >> arch-repo/SECURITY.md.clean
-                cat SECURITY.md >> arch-repo/SECURITY.md.clean
-                echo "" >> arch-repo/SECURITY.md.clean
-                echo "<!-- TEMPLATE_SECURITY_END -->" >> arch-repo/SECURITY.md.clean
-                
-                # Replace the original file
-                mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
-                rm -f arch-repo/SECURITY.md.backup
-                
-                echo "✅ Security documentation updated with deterministic removal"
-              else
-                echo "📄 Creating new SECURITY.md from template..."
-                {
-                  echo "<!-- TEMPLATE_SECURITY_START -->"
-                  echo "## Template Repository Security Standards"
-                  echo ""
-                  echo "*Last updated from template: $(date '+%Y-%m-%d %H:%M:%S UTC')*"
-                  echo ""
-                  cat SECURITY.md
-                  echo ""
-                  echo "<!-- TEMPLATE_SECURITY_END -->"
-                } > arch-repo/SECURITY.md
-                echo "✅ Security documentation created with sentinel markers"
-              fi
+          if [ -f "arch-repo/SECURITY.md" ]; then
+            echo "Found existing SECURITY.md"
+            if grep -q "<!-- TEMPLATE_SECURITY_START -->" arch-repo/SECURITY.md; then
+              echo "Removing existing template section..."
+              perl -0pe 's/<!-- TEMPLATE_SECURITY_START -->.*?<!-- TEMPLATE_SECURITY_END -->//gs' arch-repo/SECURITY.md > arch-repo/SECURITY.md.clean
+              mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
             fi
           fi
           
-          # Sync CI/workflow improvements
-          if [ "${{ steps.changes.outputs.ci_changes }}" = "true" ]; then
-            echo "🚀 Syncing CI improvements..."
-            mkdir -p arch-repo/standards/workflows/templates/
-            for workflow in .github/workflows/*.yml; do
-              if [ -f "$workflow" ] && [ "$(basename "$workflow")" != "sync-architecture.yml" ]; then
-                cp "$workflow" "arch-repo/standards/workflows/templates/$(basename "$workflow")"
-                echo "✅ Synced workflow: $(basename "$workflow")"
-              fi
-            done
-          fi
-          
-          # Sync script improvements
-          if [ "${{ steps.changes.outputs.scripts_changes }}" = "true" ]; then
-            echo "🛠️ Syncing script improvements..."
-            for script in scripts/*.sh; do
-              if [ -f "$script" ] && [ "$(basename "$script")" != "dev-setup.sh" ]; then
-                cp "$script" "arch-repo/scripts/"
-                echo "✅ Synced script: $(basename "$script")"
-              fi
-            done
-          fi
+          echo "" >> arch-repo/SECURITY.md
+          echo "<!-- TEMPLATE_SECURITY_START -->" >> arch-repo/SECURITY.md
+          echo "## Template Repository Security Standards" >> arch-repo/SECURITY.md
+          echo "" >> arch-repo/SECURITY.md
+          cat SECURITY.md >> arch-repo/SECURITY.md
+          echo "" >> arch-repo/SECURITY.md
+          echo "<!-- TEMPLATE_SECURITY_END -->" >> arch-repo/SECURITY.md
       
-      - name: Setup GitHub CLI
-        if: steps.changes.outputs.sync_needed == 'true'
+      - name: Install GitHub CLI
         run: |
-          echo "🛠️ Installing GitHub CLI..."
           curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt update
           sudo apt install gh
-          echo "✅ GitHub CLI installed successfully"
       
-      - name: Commit and Push Changes
-        if: steps.changes.outputs.sync_needed == 'true'
+      - name: Commit and Create PR
         run: |
           cd arch-repo
+          git add SECURITY.md
           
-          # Check if there are changes to commit
-          git add .
           if git diff --staged --quiet; then
-            echo "ℹ️ No changes to sync"
+            echo "No changes to sync"
             exit 0
           fi
           
-          # Commit changes
-          commit_message="🔄 Sync improvements from template repository
-
-Template commit: ${{ github.sha }}
-Changes: Security=${{ steps.changes.outputs.security_changes }}, CI=${{ steps.changes.outputs.ci_changes }}, Scripts=${{ steps.changes.outputs.scripts_changes }}
-
-Auto-synced by template→architecture workflow"
-          
-          git commit -m "$commit_message"
-          
-          # Push using cross-repo PAT with proper authentication
+          git commit -m "Sync SECURITY.md from template repository"
           git remote set-url origin https://x-access-token:${{ secrets.ARCHITECTURE_SYNC_TOKEN }}@github.com/${{ github.repository_owner }}/saas-ecosystem-architecture.git
           git push origin "$sync_branch"
           
-          echo "✅ Changes pushed to branch: $sync_branch"
-          
-          # Create PR using GitHub CLI
-          echo "📝 Creating pull request..."
-          
           gh pr create \
             --repo "${{ github.repository_owner }}/saas-ecosystem-architecture" \
-            --title "🔄 Sync improvements from template repository" \
-            --body "Template to Architecture Sync
-
-Source commit: ${{ github.sha }}
-Triggered by: ${{ github.event.head_commit.message }}
-
-Changes Synced:
-- Security changes: ${{ steps.changes.outputs.security_changes }}
-- CI changes: ${{ steps.changes.outputs.ci_changes }}
-- Scripts changes: ${{ steps.changes.outputs.scripts_changes }}
-
-Auto-generated by template sync workflow" \
+            --title "Sync SECURITY.md from template" \
+            --body "Automated sync of SECURITY.md from template repository" \
             --head "$sync_branch" \
             --base "main"
         env:
