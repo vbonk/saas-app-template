@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-We actively support the following versions of the SaaS App Template:
+We actively support the following versions of the SaaS App Template with comprehensive security monitoring:
 
 | Version | Supported          |
 | ------- | ------------------ |
