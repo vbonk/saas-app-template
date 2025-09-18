@@ -104,16 +104,37 @@ jobs:
               echo "✅ Security validation script synced"
             fi
             if [ -f "SECURITY.md" ]; then
-              # Merge security content rather than overwrite
+              # Idempotent security content sync with dedicated section
               if [ -f "arch-repo/SECURITY.md" ]; then
-                echo "" >> arch-repo/SECURITY.md
-                echo "## Updates from Template Repository" >> arch-repo/SECURITY.md
-                echo "" >> arch-repo/SECURITY.md
-                cat SECURITY.md >> arch-repo/SECURITY.md
+                echo "🔄 Updating security documentation with idempotent merge..."
+                
+                # Create backup
+                cp arch-repo/SECURITY.md arch-repo/SECURITY.md.backup
+                
+                # Remove any existing template section to prevent duplication
+                sed '/^## Template Repository Security Standards/,/^## /{ /^## Template Repository Security Standards/d; /^## /!d; }' arch-repo/SECURITY.md > arch-repo/SECURITY.md.tmp
+                
+                # If the file ends with template section, remove it
+                sed '/^## Template Repository Security Standards/,$d' arch-repo/SECURITY.md.tmp > arch-repo/SECURITY.md.clean
+                
+                # Add template section at the end
+                echo "" >> arch-repo/SECURITY.md.clean
+                echo "## Template Repository Security Standards" >> arch-repo/SECURITY.md.clean
+                echo "" >> arch-repo/SECURITY.md.clean
+                echo "*Last updated from template: $(date '+%Y-%m-%d %H:%M:%S UTC')*" >> arch-repo/SECURITY.md.clean
+                echo "" >> arch-repo/SECURITY.md.clean
+                cat SECURITY.md >> arch-repo/SECURITY.md.clean
+                
+                # Replace the original file
+                mv arch-repo/SECURITY.md.clean arch-repo/SECURITY.md
+                rm -f arch-repo/SECURITY.md.tmp arch-repo/SECURITY.md.backup
+                
+                echo "✅ Security documentation updated idempotently"
               else
+                echo "📄 Creating new SECURITY.md from template..."
                 cp SECURITY.md arch-repo/
+                echo "✅ Security documentation created"
               fi
-              echo "✅ Security documentation synced"
             fi
           fi
           
