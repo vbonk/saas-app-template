@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+// const { execSync } = require('child_process');
 
 class DocumentationGenerator {
   constructor() {
@@ -72,6 +72,7 @@ class DocumentationGenerator {
     const template = this.loadTemplate('ARCHITECTURE.template.md');
     const components = this.analyzeComponents();
     const data = {
+      projectName: this.packageJson.name,
       techStack: this.stackConfig,
       components: this.formatComponents(components),
       dependencies: this.analyzeDependencies(),
@@ -93,6 +94,7 @@ class DocumentationGenerator {
     const apiRoutes = this.extractAPIEndpoints();
     
     const data = {
+      projectName: this.packageJson.name,
       endpoints: this.formatEndpoints(apiRoutes),
       authentication: this.getAuthenticationInfo(),
       errorHandling: this.getErrorHandlingInfo(),
@@ -110,6 +112,7 @@ class DocumentationGenerator {
     
     const template = this.loadTemplate('DEPLOYMENT.template.md');
     const data = {
+      projectName: this.packageJson.name,
       platform: 'Railway',
       domain: process.env.DOMAIN || 'your-domain.com',
       environment: this.getEnvironmentVariables(),
