@@ -2,7 +2,7 @@
 
 ## 🏗️ System Overview
 
-This document describes the architecture of {{projectName}}, a modern SaaS application built with scalability, maintainability, and developer experience in mind.
+This document describes the architecture of saas-app-template, a modern SaaS application built with scalability, maintainability, and developer experience in mind.
 
 ### Technology Stack
 
@@ -231,7 +231,7 @@ src/
 
 ---
 
-*Last updated: 2025-09-17 | Auto-generated from code analysis*
+*Last updated: 2025-09-19 | Auto-generated from code analysis*
 
 **This architecture supports rapid development while maintaining production-grade quality, security, and scalability.**
 
