@@ -27,7 +27,10 @@
     "db:seed": "tsx prisma/seed.ts",
     "queue:dev": "node scripts/queue-worker.js",
     "queue:dashboard": "node scripts/queue-dashboard.js",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "security:validate": "./scripts/security-validation.sh",
+    "security:lint": "eslint --config .eslintrc.security.js \"src/**/*.{ts,tsx,js,jsx}\"",
+    "test:security": "npm audit && npm run security:validate"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.0",

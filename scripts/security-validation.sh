@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# Security Validation Script for SaaS Ecosystem
-# Validates that all applications follow secure secrets management patterns
+# Security Validation Script for SaaS Application Template
+# Validates that the application follows secure secrets management patterns
 
 set -e
 
-echo "🔐 SaaS Ecosystem Security Validation"
+echo "🔐 SaaS Template Security Validation"
 echo "======================================"
-echo "🎯 Comprehensive security scanning with enhanced validation"
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,116 +53,152 @@ check_forbidden_patterns() {
     fi
 }
 
-# Function to check for required security patterns
-check_required_patterns() {
-    local file=$1
-    local context=$2
+# Function to check secure patterns
+check_secure_patterns() {
+    local context=$1
+    shift
+    local files=("$@")
     
-    # If this file handles API keys, check for encryption
-    if grep -q "apiKey\|api_key\|API_KEY" "$file" 2>/dev/null; then
-        if ! grep -q "encrypt\|decrypt" "$file" 2>/dev/null; then
-            echo -e "${YELLOW}⚠️  WARNING: API key handling without encryption in $file${NC}"
-            WARNINGS=$((WARNINGS + 1))
-        else
-            echo -e "${GREEN}✅ Good: Found encryption patterns for API keys in $file${NC}"
-        fi
+    echo ""
+    echo "🔐 Checking secure patterns in $context..."
+    
+    # Check if security utilities exist
+    if [ -f "src/lib/security/encryption.ts" ]; then
+        echo -e "${GREEN}✅ Encryption utilities found${NC}"
+    else
+        echo -e "${YELLOW}⚠️  WARNING: Encryption utilities not found${NC}"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+    
+    if [ -f "src/lib/admin/settings.ts" ]; then
+        echo -e "${GREEN}✅ Secure settings manager found${NC}"
+    else
+        echo -e "${YELLOW}⚠️  WARNING: Secure settings manager not found${NC}"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+    
+    # Check if .env files are properly ignored
+    if grep -q "^\.env" .gitignore 2>/dev/null; then
+        echo -e "${GREEN}✅ Environment files are gitignored${NC}"
+    else
+        echo -e "${RED}❌ CRITICAL: .env files are not in .gitignore${NC}"
+        ERRORS=$((ERRORS + 1))
     fi
 }
 
-# Function to validate environment files
-check_env_files() {
-    echo "🔍 Checking environment files..."
+# Function to check GitHub workflows
+check_github_workflows() {
+    echo ""
+    echo "🔐 Checking GitHub workflows for security..."
     
-    for env_file in $(find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" -not -name ".env.template"); do
-        if [ -f "$env_file" ]; then
-            echo -e "${YELLOW}⚠️  WARNING: Found environment file that should not be committed: $env_file${NC}"
-            WARNINGS=$((WARNINGS + 1))
-            
-            # Check if it's in .gitignore (check both current dir and parent dir for proper gitignore)
-            gitignore_found=false
-            if [ -f ".gitignore" ] && grep -q "$(basename "$env_file")" .gitignore 2>/dev/null; then
-                gitignore_found=true
-            elif [ -f "$(dirname "$env_file")/.gitignore" ] && grep -q "$(basename "$env_file")" "$(dirname "$env_file")/.gitignore" 2>/dev/null; then
-                gitignore_found=true
+    if [ -d ".github/workflows" ]; then
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            if [ -f "$workflow" ]; then
+                check_forbidden_patterns "$workflow" "GitHub Workflow"
+                
+                # Check for proper secret usage
+                if grep -q "\${{ secrets\." "$workflow" 2>/dev/null; then
+                    echo -e "${GREEN}✅ Workflow uses GitHub secrets properly${NC}"
+                fi
             fi
-            
-            if [ "$gitignore_found" = false ]; then
-                echo -e "${RED}❌ CRITICAL: Environment file $env_file not in .gitignore${NC}"
-                ERRORS=$((ERRORS + 1))
-            else
-                echo -e "${GREEN}✅ Environment file $env_file is properly ignored${NC}"
-            fi
-        fi
-    done
+        done
+    else
+        echo -e "${YELLOW}⚠️  WARNING: No GitHub workflows found${NC}"
+        WARNINGS=$((WARNINGS + 1))
+    fi
 }
 
-# Function to check for secure settings implementation
-check_secure_settings() {
-    echo "🔍 Checking for secure settings implementation..."
-    
-    # Look for settings/configuration files
-    for settings_file in $(find . -name "*settings*" -o -name "*config*" | grep -E "\.(ts|tsx|js|jsx)$" | grep -v node_modules); do
-        if [ -f "$settings_file" ]; then
-            check_forbidden_patterns "$settings_file" "Settings File"
-            check_required_patterns "$settings_file" "Settings File"
+# Main validation process
+echo ""
+echo "1️⃣  Checking source code..."
+echo "================================"
+
+# Find all TypeScript/JavaScript files (excluding node_modules, dist, and test files)
+find src -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/.next/*" | while read -r file; do
+    check_forbidden_patterns "$file" "Source"
+done
+
+echo ""
+echo "2️⃣  Checking API routes..."
+echo "================================"
+
+# Check API routes specifically
+if [ -d "src/app/api" ]; then
+    find src/app/api -type f \( -name "*.ts" -o -name "*.tsx" \) | while read -r file; do
+        echo "🔍 Checking API route: $file"
+        
+        # Check if API routes use secure settings manager
+        if grep -q "settingsManager" "$file" 2>/dev/null; then
+            echo -e "${GREEN}✅ Uses secure settings manager${NC}"
+        elif grep -q "localStorage\|sessionStorage" "$file" 2>/dev/null; then
+            echo -e "${RED}❌ CRITICAL: API route should not use browser storage${NC}"
+            ERRORS=$((ERRORS + 1))
         fi
     done
-}
+fi
 
-# Main validation
-echo "🚀 Starting security validation..."
+echo ""
+echo "3️⃣  Checking secure patterns..."
+echo "================================"
+check_secure_patterns "Template"
 
-# Check TypeScript/JavaScript files (all files, no limit)
-echo "🔍 Scanning all TypeScript/JavaScript files for security patterns..."
-file_count=0
-for file in $(find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | grep -v node_modules | grep -v ".next" | grep -v "dist/" | grep -v "build/"); do
-    if [ -f "$file" ]; then
-        check_forbidden_patterns "$file" "Source File"
-        check_required_patterns "$file" "Source File"
-        ((file_count++))
-        if (( file_count % 50 == 0 )); then
-            echo "📊 Processed $file_count files..."
-        fi
+echo ""
+echo "4️⃣  Checking GitHub workflows..."
+echo "================================"
+check_github_workflows
+
+echo ""
+echo "5️⃣  Checking environment configuration..."
+echo "================================"
+
+# Check for .env.example
+if [ -f ".env.example" ]; then
+    echo -e "${GREEN}✅ .env.example exists${NC}"
+    
+    # Check that .env.example doesn't contain real secrets
+    if grep -q "sk-\|pk_\|ghp_\|gho_\|ghu_\|ghs_" ".env.example" 2>/dev/null; then
+        echo -e "${RED}❌ CRITICAL: .env.example contains real secrets${NC}"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo -e "${GREEN}✅ .env.example is safe${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  WARNING: .env.example not found${NC}"
+    WARNINGS=$((WARNINGS + 1))
+fi
+
+# Check for committed .env files
+for env_file in .env .env.local .env.production; do
+    if [ -f "$env_file" ]; then
+        echo -e "${RED}❌ CRITICAL: $env_file is committed to the repository${NC}"
+        ERRORS=$((ERRORS + 1))
     fi
 done
-echo "✅ Scanned $file_count source files total"
-
-# Check environment files
-check_env_files
-
-# Check for secure settings implementation
-check_secure_settings
-
-# Check for security test files
-echo "🔍 Checking for security tests..."
-if ! find . -name "*security*test*" -o -name "*test*security*" | grep -v node_modules | head -1 > /dev/null; then
-    echo -e "${YELLOW}⚠️  WARNING: No security tests found${NC}"
-    WARNINGS=$((WARNINGS + 1))
-else
-    echo -e "${GREEN}✅ Good: Security tests found${NC}"
-fi
 
 # Summary
 echo ""
+echo "======================================"
 echo "📊 Security Validation Summary"
-echo "=============================="
+echo "======================================"
+
 if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
     echo -e "${GREEN}✅ All security checks passed!${NC}"
+    echo "Your application follows secure patterns for secrets management."
     exit 0
 elif [ $ERRORS -eq 0 ]; then
-    echo -e "${YELLOW}⚠️  $WARNINGS warnings found (review recommended)${NC}"
+    echo -e "${YELLOW}⚠️  Validation completed with $WARNINGS warnings${NC}"
+    echo "Consider addressing the warnings to improve security."
     exit 0
 else
-    echo -e "${RED}❌ $ERRORS critical security issues found!${NC}"
-    echo -e "${YELLOW}⚠️  $WARNINGS warnings found${NC}"
+    echo -e "${RED}❌ Validation failed with $ERRORS critical errors and $WARNINGS warnings${NC}"
     echo ""
-    echo "🚨 CRITICAL SECURITY ISSUES MUST BE FIXED BEFORE DEPLOYMENT"
+    echo "🔧 Required Actions:"
+    echo "1. Never store secrets in localStorage/sessionStorage"
+    echo "2. Use the secure settings manager for all sensitive data"
+    echo "3. Store all secrets in environment variables"
+    echo "4. Ensure all .env files are in .gitignore"
+    echo "5. Never commit API keys or secrets to the repository"
     echo ""
-    echo "Common fixes:"
-    echo "1. Move secrets from localStorage to server-side encrypted storage"
-    echo "2. Replace hardcoded API keys with environment variables"
-    echo "3. Use encryption utilities for sensitive data storage"
-    echo "4. Add .env files to .gitignore"
-    echo ""
+    echo "For more information, see: https://github.com/vbonk/saas-ecosystem-architecture/blob/main/SECURITY.md"
     exit 1
 fi

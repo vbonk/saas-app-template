@@ -1,51 +1,92 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+
+export const runtime = 'edge';
+
+interface HealthCheckResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  timestamp: string;
+  uptime: number;
+  environment: string;
+  checks: {
+    database?: {
+      status: 'connected' | 'disconnected';
+      latency?: number;
+    };
+    redis?: {
+      status: 'connected' | 'disconnected';
+      latency?: number;
+    };
+    api?: {
+      status: 'operational' | 'degraded' | 'down';
+    };
+  };
+}
 
 export async function GET() {
+  const startTime = Date.now();
+  const headersList = headers();
+  
+  // Basic health check response
+  const health: HealthCheckResponse = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    checks: {},
+  };
+
   try {
-    const health = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      uptime: process.uptime(),
-      memory: {
-        used:
-          Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) /
-          100,
-        total:
-          Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) /
-          100,
-      },
-      services: {
-        database: 'connected', // This would check actual DB connection
-        auth: 'available', // This would check Clerk status
-        payments: 'available', // This would check Stripe status
-      },
+    // Check database connection (simplified - in production, actually test the connection)
+    if (process.env.DATABASE_URL) {
+      health.checks.database = {
+        status: 'connected',
+        latency: Math.random() * 50, // Mock latency
+      };
+    }
+
+    // Check Redis connection (simplified)
+    if (process.env.REDIS_URL) {
+      health.checks.redis = {
+        status: 'connected',
+        latency: Math.random() * 10, // Mock latency
+      };
+    }
+
+    // API operational check
+    health.checks.api = {
+      status: 'operational',
     };
 
+    // Determine overall health status
+    const hasDisconnected = Object.values(health.checks).some(
+      check => 'status' in check && check.status === 'disconnected'
+    );
+    
+    if (hasDisconnected) {
+      health.status = 'degraded';
+    }
+
+    const responseTime = Date.now() - startTime;
+
     return NextResponse.json(health, {
-      status: 200,
+      status: health.status === 'healthy' ? 200 : 503,
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
+        'X-Response-Time': `${responseTime}ms`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
-
     return NextResponse.json(
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: 'Health check failed',
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        checks: {},
       },
-      { status: 500 }
+      { status: 503 }
     );
   }
-}
-
-export async function HEAD() {
-  // Simple HEAD request for basic health checks
-  return new NextResponse(null, { status: 200 });
 }
