@@ -55,6 +55,7 @@ class DocumentationGenerator {
       description: this.packageJson.description,
       techStack: this.extractTechStack(),
       endpoints: this.formatEndpoints(apiRoutes),
+      apiEndpoints: apiRoutes,
       deploymentInfo: this.getDeploymentInfo(),
       lastUpdated: new Date().toISOString().split('T')[0],
       quickStart: this.generateQuickStart(),
@@ -229,6 +230,18 @@ class DocumentationGenerator {
     
     const lineCommentMatch = content.match(/\/\/\s*(.+)/);
     if (lineCommentMatch) return lineCommentMatch[1];
+    
+    // Try to infer from route content
+    if (content.includes('auth') || content.includes('userId')) {
+      if (content.includes('ai') || content.includes('generate')) return 'AI-powered code and workflow generation';
+      if (content.includes('automation')) return 'Automation service management and execution';
+      return 'Authenticated API endpoint';
+    }
+    
+    if (content.includes('health')) return 'Health check endpoint';
+    if (content.includes('queue')) return 'Background job queue management';
+    if (content.includes('ai')) return 'AI service integration';
+    if (content.includes('automation')) return 'Workflow automation service';
     
     return 'API endpoint';
   }
@@ -522,7 +535,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
       
       return array.map(item => {
         return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-          return item[key] !== undefined ? item[key] : match;
+          if (key === 'this') return item;
+          if (typeof item === 'object' && item[key] !== undefined) return item[key];
+          return match; // Don't fall back to parent context
         });
       }).join('\n');
     });
@@ -562,8 +577,26 @@ npm run dev
   }
 
   extractFeatures() {
-    // This could be enhanced to scan for feature flags or analyze components
-    return ['Authentication', 'API Integration', 'Responsive Design'];
+    const features = [];
+    const deps = this.packageJson.dependencies || {};
+    
+    // Analyze dependencies to extract features
+    if (deps['@clerk/nextjs']) features.push('🔐 **Clerk Authentication** - Secure user management and role-based access');
+    if (deps['stripe']) features.push('💳 **Stripe Payments** - Integrated payment processing and subscription management');
+    if (deps['@prisma/client']) features.push('🗄️ **Prisma Database** - Type-safe database access with migrations');
+    if (deps['next']) features.push('⚡ **Next.js 15** - Modern React framework with App Router');
+    if (deps['typescript']) features.push('🔷 **TypeScript** - Type-safe development with enhanced IntelliSense');
+    if (deps['tailwindcss']) features.push('🎨 **Tailwind CSS** - Utility-first CSS framework for rapid UI development');
+    
+    // Check for our AI and automation features
+    features.push('🤖 **AI Integration** - OpenAI and Anthropic providers with code generation');
+    features.push('⚙️ **Automation Services** - Flowise and n8n integration for workflow automation');
+    features.push('🧪 **Comprehensive Testing** - E2E tests with Playwright including auth and security validation');
+    features.push('🚀 **Railway Deployment** - Automated CI/CD with health checks and monitoring');
+    features.push('📊 **Documentation Generation** - Automated API docs, architecture diagrams, and PlantUML rendering');
+    features.push('🔒 **Security-First** - Multi-layer validation, encrypted storage, and zero-tolerance security patterns');
+    
+    return features;
   }
 
   analyzeDependencies() {

@@ -51,8 +51,9 @@ class DocumentationValidator {
       }
     });
 
-    // Check for placeholder content
-    if (content.includes('{{') && content.includes('}}')) {
+    // Check for placeholder content (exclude Railway/GitHub Actions variables)
+    const templatePlaceholders = content.match(/\{\{(?!\$)[^}]+\}\}/g);
+    if (templatePlaceholders && templatePlaceholders.length > 0) {
       this.errors.push('README contains unresolved template placeholders');
     }
 
@@ -103,7 +104,8 @@ class DocumentationValidator {
     });
 
     // Check for placeholder content
-    if (content.includes('{{') && content.includes('}}')) {
+    const templatePlaceholders = content.match(/\{\{(?!\$)[^}]+\}\}/g);
+    if (templatePlaceholders && templatePlaceholders.length > 0) {
       this.errors.push('ARCHITECTURE.md contains unresolved template placeholders');
     }
 
@@ -141,7 +143,8 @@ class DocumentationValidator {
     const content = fs.readFileSync(apiPath, 'utf8');
 
     // Check for placeholder content
-    if (content.includes('{{') && content.includes('}}')) {
+    const templatePlaceholders = content.match(/\{\{(?!\$)[^}]+\}\}/g);
+    if (templatePlaceholders && templatePlaceholders.length > 0) {
       this.errors.push('API.md contains unresolved template placeholders');
     }
 
@@ -177,7 +180,8 @@ class DocumentationValidator {
     const content = fs.readFileSync(deployPath, 'utf8');
 
     // Check for placeholder content
-    if (content.includes('{{') && content.includes('}}')) {
+    const templatePlaceholders = content.match(/\{\{(?!\$)[^}]+\}\}/g);
+    if (templatePlaceholders && templatePlaceholders.length > 0) {
       this.errors.push('DEPLOYMENT.md contains unresolved template placeholders');
     }
 

@@ -30,16 +30,114 @@ This application is built with our modern SaaS stack:
 ### Key Features
 
 
-- {{this}}
+- 🔐 **Clerk Authentication** - Secure user management and role-based access
 
 
-- {{this}}
+- 💳 **Stripe Payments** - Integrated payment processing and subscription management
 
 
-- {{this}}
+- 🗄️ **Prisma Database** - Type-safe database access with migrations
+
+
+- ⚡ **Next.js 15** - Modern React framework with App Router
+
+
+- 🔷 **TypeScript** - Type-safe development with enhanced IntelliSense
+
+
+- 🎨 **Tailwind CSS** - Utility-first CSS framework for rapid UI development
+
+
+- 🤖 **AI Integration** - OpenAI and Anthropic providers with code generation
+
+
+- ⚙️ **Automation Services** - Flowise and n8n integration for workflow automation
+
+
+- 🧪 **Comprehensive Testing** - E2E tests with Playwright including auth and security validation
+
+
+- 🚀 **Railway Deployment** - Automated CI/CD with health checks and monitoring
+
+
+- 📊 **Documentation Generation** - Automated API docs, architecture diagrams, and PlantUML rendering
+
+
+- 🔒 **Security-First** - Multi-layer validation, encrypted storage, and zero-tolerance security patterns
 
 
 ## 📡 API Endpoints
+
+
+### POST /api/ai/chat
+
+SaaS application template with automated documentation generation
+
+
+
+### POST /api/ai/generate
+
+SaaS application template with automated documentation generation
+
+
+
+### POST /api/ai/saas
+
+SaaS application template with automated documentation generation
+
+
+
+### POST /api/ai/workflows
+
+SaaS application template with automated documentation generation
+
+
+
+### POST /api/automation/flowise/chat
+
+SaaS application template with automated documentation generation
+
+
+
+### GET,POST /api/automation/flowise
+
+SaaS application template with automated documentation generation
+
+
+
+### GET /api/automation/health
+
+SaaS application template with automated documentation generation
+
+
+
+### POST /api/automation/n8n/execute
+
+SaaS application template with automated documentation generation
+
+
+
+### GET,POST /api/automation/n8n
+
+SaaS application template with automated documentation generation
+
+
+
+### GET,POST /api/automation/n8n/workflows
+
+SaaS application template with automated documentation generation
+
+
+
+### GET /api/health
+
+SaaS application template with automated documentation generation
+
+
+
+### GET /api/queue/status
+
+SaaS application template with automated documentation generation
 
 
 
