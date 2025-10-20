@@ -58,7 +58,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.0.0",
@@ -78,7 +78,7 @@
     "jest-environment-jsdom": "^29.0.0",
     "lint-staged": "^15.0.0",
     "markdownlint-cli": "^0.37.0",
-    "playwright": "^1.40.0",
+    "playwright": "^1.56.1",
     "prettier": "^3.1.0",
     "prisma": "^5.7.0"
   },
