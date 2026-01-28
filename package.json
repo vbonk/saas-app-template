@@ -40,13 +40,13 @@
     "test:security": "npm audit && npm run security:validate"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.0",
+    "@clerk/nextjs": "^6.36.10",
     "@prisma/client": "^5.7.0",
     "@radix-ui/react-slot": "^1.0.0",
     "@stripe/stripe-js": "^2.4.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
-    "next": "^15.0.0",
+    "next": "^16.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "resend": "^2.1.0",
@@ -58,7 +58,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "^1.58.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.0.0",
@@ -78,7 +78,7 @@
     "jest-environment-jsdom": "^29.0.0",
     "lint-staged": "^15.0.0",
     "markdownlint-cli": "^0.37.0",
-    "playwright": "^1.40.0",
+    "playwright": "^1.58.0",
     "prettier": "^3.1.0",
     "prisma": "^5.7.0"
   },
